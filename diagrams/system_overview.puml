@@ -1,0 +1,149 @@
+@startuml
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title "CampusEats - System-level DB Overview"
+
+' Define diagram type explicitly
+class dummy << (D,orchid) class >> 
+
+note top
+  Enums stored as integers for EF Core compatibility.
+  Cross-service foreign keys shown as logical references (no cross-db FK enforcement).
+end note
+
+package "Users Service" {
+  class users {
+    + id : UUID
+    email : varchar(255)
+    first_name : varchar(100)
+    last_name : varchar(100)
+    is_active : boolean
+    is_admin : boolean
+  }
+
+  class oauth_providers {
+    + id : UUID
+    user_id : UUID
+    provider : int
+    provider_id : varchar(255)
+  }
+
+  class user_analytics {
+    + id : UUID
+    user_id : UUID
+    session_id : varchar(255)
+  }
+
+  users "1" *-- "many" oauth_providers
+  users "1" *-- "many" user_analytics
+}
+
+package "Menu Service" {
+  class menu_categories {
+    + id : UUID
+    name : varchar(100)
+  }
+
+  class menu_items {
+    + id : UUID
+    category_id : UUID
+    name : varchar(255)
+    price : numeric
+  }
+
+  menu_categories "1" *-- "many" menu_items
+}
+
+package "Orders Service" {
+  class orders {
+    + id : UUID
+    user_id : UUID
+    total_amount : numeric
+    order_status : int
+  }
+
+  class order_items {
+    + id : UUID
+    order_id : UUID
+    menu_item_id : UUID
+    name : varchar(255)
+    quantity : int
+  }
+
+  orders "1" *-- "many" order_items
+}
+
+package "Kitchen Service" {
+  class kitchen_orders {
+    + id : UUID
+    order_id : UUID
+    station : varchar(100)
+    status : int
+  }
+
+  class kitchen_items {
+    + id : UUID
+    kitchen_order_id : UUID
+    order_item_id : UUID
+    name : varchar(255)
+  }
+
+  kitchen_orders "1" *-- "many" kitchen_items
+}
+
+package "Payments Service" {
+  class payments {
+    + id : UUID
+    order_id : UUID
+    user_id : UUID
+    amount : numeric
+    status : varchar(50)
+  }
+
+  class idempotency_keys {
+    + id : UUID
+    key : varchar(255)
+    user_id : UUID
+  }
+}
+
+package "Loyalty Service" {
+  class loyalty_accounts {
+    + id : UUID
+    user_id : UUID
+    points_balance : bigint
+    tier : int
+  }
+
+  class loyalty_transactions {
+    + id : UUID
+    loyalty_account_id : UUID
+    change_amount : bigint
+  }
+
+  class loyalty_redemptions {
+    + id : UUID
+    loyalty_account_id : UUID
+    points_used : bigint
+  }
+
+  loyalty_accounts "1" *-- "many" loyalty_transactions
+  loyalty_accounts "1" *-- "many" loyalty_redemptions
+}
+
+' Cross-service logical references (no enforced FK)
+orders ..> users : "uses"
+payments ..> orders : "uses"
+payments ..> users : "uses"
+kitchen_orders ..> orders : "uses"
+loyalty_accounts ..> users : "uses"
+order_items ..> menu_items : "uses"
+
+note bottom
+  This diagram is a system-level overview. Cross-service relationships are shown for clarity
+  but are not enforced as database-level foreign keys across different databases.
+end note
+
+@enduml

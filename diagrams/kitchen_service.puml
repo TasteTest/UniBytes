@@ -1,0 +1,33 @@
+@startuml
+title Kitchen Service Schema
+hide circle
+
+entity kitchen_orders {
+  * id : UUID <<PK>>
+  --
+  order_id : UUID
+  station : varchar(100)
+  status : int
+  assigned_to : varchar(100)
+  started_at : timestamptz
+  ready_at : timestamptz  
+  completed_at : timestamptz
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity kitchen_items {
+  * id : UUID <<PK>>
+  --
+  kitchen_order_id : UUID <<FK>>
+  order_item_id : UUID
+  name : varchar(255)
+  note : text
+  status : int
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+kitchen_orders ||--o{ kitchen_items : "kitchen_order_id -> id"
+
+@enduml

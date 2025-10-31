@@ -1,0 +1,37 @@
+@startuml
+title Orders Service Schema
+hide circle
+
+entity orders {
+  * id : UUID <<PK>>
+  --
+  user_id : UUID
+  external_user_ref : varchar(255)
+  total_amount : numeric(12,2)
+  currency : char(3)
+  payment_status : int
+  order_status : int
+  placed_at : timestamptz
+  cancel_requested_at : timestamptz
+  canceled_at : timestamptz
+  metadata : jsonb
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity order_items {
+  * id : UUID <<PK>>
+  --
+  order_id : UUID <<FK>>
+  menu_item_id : UUID
+  name : varchar(255)
+  unit_price : numeric(10,2)
+  quantity : int
+  modifiers : jsonb
+  total_price : numeric(12,2)
+  created_at : timestamptz
+}
+
+orders ||--o{ order_items : "order_id -> id"
+
+@enduml

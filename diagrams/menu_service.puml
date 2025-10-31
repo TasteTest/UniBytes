@@ -1,0 +1,33 @@
+@startuml
+title Menu Service Schema
+hide circle
+
+entity menu_categories {
+  * id : UUID <<PK>>
+  --
+  name : varchar(100) <<UQ, NotNull>>
+  description : text
+  display_order : int
+  is_active : boolean
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity menu_items {
+  * id : UUID <<PK>>
+  --
+  category_id : UUID <<FK>>
+  name : varchar(255) <<NotNull>>
+  description : text
+  price : numeric(10,2)
+  currency : char(3)
+  available : boolean
+  visibility : int
+  components : jsonb
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+menu_categories ||--o{ menu_items : "category_id -> id"
+
+@enduml

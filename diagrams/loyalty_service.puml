@@ -1,0 +1,40 @@
+@startuml
+title Loyalty Service Schema
+hide circle
+
+entity loyalty_accounts {
+  * id : UUID <<PK>>
+  --
+  user_id : UUID <<UQ>>
+  points_balance : bigint
+  tier : int
+  is_active : boolean
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity loyalty_transactions {
+  * id : UUID <<PK>>
+  --
+  loyalty_account_id : UUID <<FK>>
+  change_amount : bigint
+  reason : varchar(255)
+  reference_id : UUID
+  metadata : jsonb
+  created_at : timestamptz
+}
+
+entity loyalty_redemptions {
+  * id : UUID <<PK>>
+  --
+  loyalty_account_id : UUID <<FK>>
+  points_used : bigint
+  reward_type : varchar(100)
+  reward_metadata : jsonb
+  created_at : timestamptz
+}
+
+loyalty_accounts ||--o{ loyalty_transactions : "loyalty_account_id -> id"
+loyalty_accounts ||--o{ loyalty_redemptions : "loyalty_account_id -> id"
+
+@enduml

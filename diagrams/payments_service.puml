@@ -1,0 +1,33 @@
+@startuml
+title Payments Service Schema
+hide circle
+
+entity payments {
+  * id : UUID <<PK>>
+  --
+  order_id : UUID
+  user_id : UUID
+  amount : numeric(12,2)
+  currency : char(3)
+  provider : varchar(50)
+  provider_payment_id : varchar(255)
+  provider_charge_id : varchar(255)
+  status : varchar(50)
+  raw_provider_response : jsonb
+  failure_message : text
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity idempotency_keys {
+  * id : UUID <<PK>>
+  --
+  key : varchar(255) <<UQ>>
+  user_id : UUID
+  created_at : timestamptz
+  expires_at : timestamptz
+}
+
+payments ||--o{ idempotency_keys : "(no FK) logical association"
+
+@enduml

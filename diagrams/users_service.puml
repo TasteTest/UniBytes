@@ -1,0 +1,51 @@
+@startuml
+title Users Service Schema
+hide circle
+
+entity users {
+  * id : UUID <<PK>>
+  --
+  email : varchar(255) <<UQ, NotNull>>
+  first_name : varchar(100)
+  last_name : varchar(100)
+  bio : text
+  location : varchar(100)
+  avatar_url : text
+  is_active : boolean
+  is_admin : boolean
+  last_login_at : timestamptz
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity oauth_providers {
+  * id : UUID <<PK>>
+  --
+  user_id : UUID <<FK>>
+  provider : int
+  provider_id : varchar(255)
+  provider_email : varchar(255)
+  access_token : text
+  refresh_token : text
+  token_expires_at : timestamptz
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity user_analytics {
+  * id : UUID <<PK>>
+  --
+  user_id : UUID <<FK>>
+  session_id : varchar(255)
+  event_type : varchar(100)
+  event_data : jsonb
+  ip_address : inet
+  user_agent : text
+  referrer_url : text
+  created_at : timestamptz
+}
+
+users ||--o{ oauth_providers : "user_id -> id"
+users ||--o{ user_analytics : "user_id -> id"
+
+@enduml
