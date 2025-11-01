@@ -1,7 +1,6 @@
 /**
  * App Providers
  * Centralized provider composition
- * Following Composition over Inheritance
  */
 
 'use client'

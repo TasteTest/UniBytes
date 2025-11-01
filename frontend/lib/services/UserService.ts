@@ -1,7 +1,6 @@
 /**
  * User Service Implementation
  * Contains business logic for user operations
- * Following Single Responsibility Principle
  */
 
 import { Result } from '../types/common.types'

@@ -1,7 +1,6 @@
 /**
  * Base Repository Implementation
  * Provides common CRUD operations
- * Following DRY principle
  */
 
 import { ApiClient } from '../api/client'

@@ -1,7 +1,6 @@
 /**
  * User Hook
  * Provides easy access to user data and operations
- * Following Single Responsibility Principle
  */
 
 'use client'

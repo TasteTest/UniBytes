@@ -1,6 +1,5 @@
 /**
  * HTTP Client Configuration
- * Centralized API client following Single Responsibility Principle
  */
 
 import { ApiResponse, RequestConfig } from '../types/common.types'

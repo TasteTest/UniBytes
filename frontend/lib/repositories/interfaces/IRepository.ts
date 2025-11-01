@@ -1,6 +1,5 @@
 /**
  * Generic Repository Interface
- * Following Interface Segregation Principle
  */
 
 import { ApiResponse, RequestConfig } from '../../types/common.types'

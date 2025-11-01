@@ -1,7 +1,6 @@
 /**
  * User Repository Implementation
  * Handles all user-related data access
- * Following Single Responsibility Principle
  */
 
 import { ApiClient } from '../api/client'

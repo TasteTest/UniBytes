@@ -1,6 +1,5 @@
 /**
  * Common types used across the application
- * Following SOLID principles for type definitions
  */
 
 export interface ApiResponse<T> {

@@ -1,7 +1,5 @@
 /**
  * Service Provider Context
- * Implements Dependency Injection for services
- * Following Dependency Inversion Principle
  */
 
 'use client'
