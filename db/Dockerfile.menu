@@ -1,0 +1,15 @@
+FROM postgres:16-alpine
+
+# Set environment variables
+ENV POSTGRES_DB=menu_db
+ENV POSTGRES_USER=menu_user
+ENV POSTGRES_PASSWORD=menu_pass
+
+# Copy initialization script
+COPY schemas/menu_service.sql /docker-entrypoint-initdb.d/
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+
+

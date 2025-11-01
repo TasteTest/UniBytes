@@ -1,0 +1,13 @@
+FROM postgres:16-alpine
+
+# Set environment variables
+ENV POSTGRES_DB=kitchen_db
+ENV POSTGRES_USER=kitchen_user
+ENV POSTGRES_PASSWORD=kitchen_pass
+
+# Copy initialization script
+COPY schemas/kitchen_service.sql /docker-entrypoint-initdb.d/
+
+# Expose PostgreSQL port
+EXPOSE 5432
+

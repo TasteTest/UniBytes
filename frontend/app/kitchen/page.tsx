@@ -212,14 +212,6 @@ export default function KitchenPage() {
 
   return (
     <div className="container py-8">
-      {/* Demo Mode Banner */}
-      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-blue-600 dark:text-blue-400 font-semibold">🎭 Demo Mode</span>
-          <span className="text-blue-600 dark:text-blue-400">- Kitchen staff view with mock orders</span>
-        </div>
-      </div>
-
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
           <ChefHat className="h-10 w-10 text-primary" />

@@ -516,7 +516,13 @@ TestResults/
 
 # Docker Compose override
 docker-compose.override.yml
-.dockerignore
+
+# Environment files (keep .env.example)
+.env
+
+# Docker volumes and data
+**/docker-data/
+**/volumes/
 
 #############################################
 # Project Specific

@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import AuthProvider from '@/components/providers/session-provider'
+import { ServiceProvider } from '@/lib/providers/ServiceProvider'
 import { Navigation } from '@/components/layout/navigation'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -28,11 +29,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Navigation />
-              <main className="flex-1">{children}</main>
-            </div>
-            <Toaster />
+            <ServiceProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <Navigation />
+                <main className="flex-1">{children}</main>
+              </div>
+              <Toaster />
+            </ServiceProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

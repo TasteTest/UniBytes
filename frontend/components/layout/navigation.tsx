@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
 import { ShoppingCart, Menu, Moon, Sun, User, Home, UtensilsCrossed, History, Award, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -18,15 +19,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useCartStore } from "@/lib/store"
 import { useState } from "react"
 
-// Mock user for demo (no authentication required)
-const mockUser = {
-  name: "Alex Johnson",
-  email: "alex.johnson@university.edu",
-  image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-}
-
 export function Navigation() {
-  const session = { user: mockUser } // Demo mode: always show user
+  const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
   const itemCount = useCartStore((state) => state.getItemCount())
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -38,11 +32,15 @@ export function Navigation() {
     { href: "/loyalty", label: "Rewards", icon: Award },
   ]
 
-  // Additional demo links (visible in user dropdown)
-  const demoLinks = [
+  // Admin/Kitchen links (show only for authenticated users)
+  const adminLinks = [
     { href: "/kitchen", label: "Kitchen", icon: UtensilsCrossed },
     { href: "/admin", label: "Admin", icon: User },
   ]
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/' })
+  }
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b card-glass">
@@ -100,7 +98,7 @@ export function Navigation() {
                   <Avatar>
                     <AvatarImage src={session.user?.image || ""} alt={session.user?.name || ""} />
                     <AvatarFallback>
-                      {session.user?.name?.charAt(0).toUpperCase()}
+                      {session.user?.name?.charAt(0).toUpperCase() || session.user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -135,22 +133,18 @@ export function Navigation() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Demo Pages
+                  Management
                 </DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <Link href="/kitchen">
-                    <UtensilsCrossed className="mr-2 h-4 w-4" />
-                    Kitchen
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin">
-                    <User className="mr-2 h-4 w-4" />
-                    Admin
-                  </Link>
-                </DropdownMenuItem>
+                {adminLinks.map((link) => (
+                  <DropdownMenuItem key={link.href} asChild>
+                    <Link href={link.href}>
+                      <link.icon className="mr-2 h-4 w-4" />
+                      {link.label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => alert('Demo mode - Sign out disabled')}>
+                <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>
@@ -182,20 +176,37 @@ export function Navigation() {
                     {link.label}
                   </Link>
                 ))}
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Demo Pages</p>
-                  {demoLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 text-lg font-medium transition-colors hover:text-primary mb-3"
-                    >
-                      <link.icon className="h-5 w-5" />
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
+                {session && (
+                  <>
+                    <div className="pt-4 border-t">
+                      <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Management</p>
+                      {adminLinks.map((link) => (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-3 text-lg font-medium transition-colors hover:text-primary mb-3"
+                        >
+                          <link.icon className="h-5 w-5" />
+                          {link.label}
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="pt-4 border-t">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start text-lg font-medium"
+                        onClick={() => {
+                          setMobileMenuOpen(false)
+                          handleSignOut()
+                        }}
+                      >
+                        <LogOut className="mr-3 h-5 w-5" />
+                        Sign out
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>
@@ -204,4 +215,3 @@ export function Navigation() {
     </nav>
   )
 }
-

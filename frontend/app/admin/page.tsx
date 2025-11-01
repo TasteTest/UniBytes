@@ -135,14 +135,6 @@ export default function AdminPage() {
 
   return (
     <div className="container py-8">
-      {/* Demo Mode Banner */}
-      <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-purple-600 dark:text-purple-400 font-semibold">👑 Demo Mode</span>
-          <span className="text-purple-600 dark:text-purple-400">- Admin panel with full CRUD operations</span>
-        </div>
-      </div>
-
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-muted-foreground">Manage menu items and settings</p>

@@ -1,0 +1,15 @@
+FROM postgres:16-alpine
+
+# Set environment variables
+ENV POSTGRES_DB=payments_db
+ENV POSTGRES_USER=payments_user
+ENV POSTGRES_PASSWORD=payments_pass
+
+# Copy initialization script
+COPY schemas/payments_service.sql /docker-entrypoint-initdb.d/
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+
+
