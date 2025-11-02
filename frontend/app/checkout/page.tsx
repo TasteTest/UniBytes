@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { CreditCard, Clock, MapPin } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { CreditCard, Clock, MapPin, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,31 +15,104 @@ import { Progress } from "@/components/ui/progress"
 import { useCartStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { paymentService } from "@/lib/services/PaymentService"
+import type { CheckoutLineItem } from "@/lib/types/payment.types"
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const { items, getTotal, clearCart } = useCartStore()
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [pickupTime, setPickupTime] = useState("asap")
   const [pickupLocation, setPickupLocation] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("card")
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const subtotal = getTotal()
   const tax = subtotal * 0.08
   const total = subtotal + tax
 
-  const handlePlaceOrder = () => {
-    // Mock order placement
-    toast({
-      title: "Order placed!",
-      description: "Your order has been successfully placed. Redirecting...",
-      variant: "success",
-    })
-    clearCart()
-    setTimeout(() => {
-      router.push("/orders")
-    }, 2000)
+  const handleContinueToPayment = async () => {
+    if (!session?.user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to continue with payment.",
+        variant: "destructive",
+      })
+      router.push("/auth/signin")
+      return
+    }
+
+    if (items.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add items to your cart before checkout.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      // Prepare line items for Stripe
+      const lineItems: CheckoutLineItem[] = items.map((item) => ({
+        name: item.menuItem.name,
+        description: item.menuItem.description || undefined,
+        unitPrice: item.menuItem.price,
+        quantity: item.quantity,
+        imageUrl: item.menuItem.image || undefined,
+      }))
+
+      // Generate a temporary order ID (in production, create order first)
+      const orderId = crypto.randomUUID()
+      
+      // Get access token from session
+      const accessToken = (session as any).accessToken || ''
+      const userEmail = session.user.email || ''
+
+      if (!accessToken || !userEmail) {
+        toast({
+          title: "Session error",
+          description: "Please sign in again to continue.",
+          variant: "destructive",
+        })
+        router.push("/auth/signin")
+        return
+      }
+
+      // Create Stripe checkout session
+      const result = await paymentService.createCheckoutSession({
+        orderId,
+        accessToken,
+        userEmail,
+        lineItems,
+        successUrl: `${window.location.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/checkout`,
+        idempotencyKey: `checkout_${Date.now()}_${userEmail}`,
+      })
+
+      if (result.isSuccess && result.data) {
+        // Redirect to Stripe Checkout
+        window.location.href = result.data.sessionUrl
+      } else {
+        toast({
+          title: "Payment error",
+          description: result.error || "Failed to create checkout session. Please try again.",
+          variant: "destructive",
+        })
+        setIsProcessing(false)
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error)
+      toast({
+        title: "Payment error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+      setIsProcessing(false)
+    }
   }
 
   const progress = (step / 3) * 100
@@ -175,11 +249,22 @@ export default function CheckoutPage() {
                 )}
               </CardContent>
               <CardFooter className="flex gap-4">
-                <Button variant="outline" onClick={() => setStep(1)}>
+                <Button variant="outline" onClick={() => setStep(1)} disabled={isProcessing}>
                   Back
                 </Button>
-                <Button onClick={() => setStep(3)} className="flex-1">
-                  Review Order
+                <Button 
+                  onClick={handleContinueToPayment} 
+                  className="flex-1"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Continue to Payment"
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -227,11 +312,18 @@ export default function CheckoutPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex gap-4">
-                <Button variant="outline" onClick={() => setStep(2)}>
+                <Button variant="outline" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button onClick={handlePlaceOrder} className="flex-1">
-                  Place Order
+                <Button onClick={handleContinueToPayment} className="flex-1" disabled={isProcessing}>
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Continue to Payment"
+                  )}
                 </Button>
               </CardFooter>
             </Card>

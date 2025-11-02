@@ -65,6 +65,19 @@ public class UserService : IUserService
         }
     }
 
+    public async Task<User?> GetUserEntityByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _unitOfWork.Users.GetByEmailAsync(email, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user entity by email {Email}", email);
+            return null;
+        }
+    }
+
     public async Task<Result<IEnumerable<UserResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
