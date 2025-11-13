@@ -104,25 +104,24 @@ public class MenuItemsControllerTests
     }
 
     [Fact]
-    public async Task Update_WithValidData_ReturnsOkWithUpdatedItem()
+    public async Task Update_WithValidData_ReturnsNoContent()
     {
         // Arrange
         var itemId = Guid.NewGuid();
-        var updateDto = new UpdateMenuItemDto
-        {
-            CategoryId = Guid.NewGuid(),
-            Name = "Updated Burger",
-            Description = "New recipe",
-            Price = 10.99m,
-            Currency = "RON",
-            Available = true,
-            Components = null
-        };
+        var updateDto = new CreateMenuItemDto(
+            Guid.NewGuid(),
+            "Updated Burger",
+            "New recipe",
+            10.99m,
+            "RON",
+            true,
+            null
+        );
         var updatedItem = new MenuItemResponseDto(
             itemId,
             updateDto.CategoryId,
             updateDto.Name,
-            updateDto.Description ?? "",
+            updateDto.Description,
             updateDto.Price,
             updateDto.Currency,
             updateDto.Available,
@@ -139,10 +138,9 @@ public class MenuItemsControllerTests
         var result = await _controller.Update(itemId, updateDto, CancellationToken.None);
 
         // Assert
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedItem = okResult.Value.Should().BeAssignableTo<MenuItemResponseDto>().Subject;
-        returnedItem.Name.Should().Be("Updated Burger");
-        returnedItem.Price.Should().Be(10.99m);
+        // Controller returns NoContent, not Ok with updated data
+        result.Should().BeOfType<NoContentResult>();
+        await _mockMenuService.Received(1).UpdateMenuItemAsync(itemId, updateDto, Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -34,7 +34,7 @@ public class CategoriesControllerTests
             new() { Id = Guid.NewGuid(), Name = "Lunch", Description = "Afternoon meals", DisplayOrder = 2, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
         };
         
-        _mockRepository.GetAll()
+        _mockRepository.GetAllActiveAsync(Arg.Any<CancellationToken>())
             .Returns(categories);
 
         // Act
@@ -42,7 +42,8 @@ public class CategoriesControllerTests
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedCategories = okResult.Value.Should().BeAssignableTo<IEnumerable<CategoryResponseDto>>().Subject;
+        // Controller returns MenuCategory entities, not DTOs
+        var returnedCategories = okResult.Value.Should().BeAssignableTo<IEnumerable<backend_menu.Model.MenuCategory>>().Subject;
         returnedCategories.Should().HaveCount(2);
         returnedCategories.Should().Contain(c => c.Name == "Breakfast");
     }
@@ -70,7 +71,8 @@ public class CategoriesControllerTests
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedCategory = okResult.Value.Should().BeAssignableTo<CategoryResponseDto>().Subject;
+        // Controller returns MenuCategory entity, not DTO
+        var returnedCategory = okResult.Value.Should().BeAssignableTo<backend_menu.Model.MenuCategory>().Subject;
         returnedCategory.Name.Should().Be("Desserts");
     }
 
@@ -86,7 +88,8 @@ public class CategoriesControllerTests
         var result = await _controller.GetById(categoryId, CancellationToken.None);
 
         // Assert
-        result.Should().BeOfType<NotFoundObjectResult>();
+        // Controller returns NotFound() not NotFound(object)
+        result.Should().BeOfType<NotFoundResult>();
     }
 
     [Fact]
@@ -113,12 +116,13 @@ public class CategoriesControllerTests
         // Assert
         var createdResult = result.Should().BeOfType<CreatedAtActionResult>().Subject;
         createdResult.ActionName.Should().Be(nameof(CategoriesController.GetById));
-        var returnedCategory = createdResult.Value.Should().BeAssignableTo<CategoryResponseDto>().Subject;
+        // Controller returns MenuCategory entity, not DTO
+        var returnedCategory = createdResult.Value.Should().BeAssignableTo<backend_menu.Model.MenuCategory>().Subject;
         returnedCategory.Name.Should().Be("New Category");
     }
 
     [Fact]
-    public async Task Update_WithValidData_ReturnsOkWithUpdatedCategory()
+    public async Task Update_WithValidData_ReturnsNoContent()
     {
         // Arrange
         var categoryId = Guid.NewGuid();
@@ -132,13 +136,7 @@ public class CategoriesControllerTests
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        var updateDto = new UpdateCategoryDto
-        {
-            Name = "Updated Name",
-            Description = "Updated description",
-            DisplayOrder = 2,
-            Active = true
-        };
+        var updateDto = new CreateCategoryDto("Updated Name", "Updated description", 2, true);
         
         _mockRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(existingCategory);
@@ -149,9 +147,9 @@ public class CategoriesControllerTests
         var result = await _controller.Update(categoryId, updateDto, CancellationToken.None);
 
         // Assert
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedCategory = okResult.Value.Should().BeAssignableTo<CategoryResponseDto>().Subject;
-        returnedCategory.Name.Should().Be("Updated Name");
+        // Controller returns NoContent, not Ok with updated data
+        result.Should().BeOfType<NoContentResult>();
+        await _mockRepository.Received(1).UpdateAsync(Arg.Is<backend_menu.Model.MenuCategory>(c => c.Name == "Updated Name"), Arg.Any<CancellationToken>());
     }
 
     [Fact]
