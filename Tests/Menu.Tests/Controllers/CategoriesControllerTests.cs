@@ -34,7 +34,7 @@ public class CategoriesControllerTests
             new() { Id = Guid.NewGuid(), Name = "Lunch", Description = "Afternoon meals", DisplayOrder = 2, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
         };
         
-        _mockRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _mockRepository.GetAll()
             .Returns(categories);
 
         // Act
@@ -132,7 +132,7 @@ public class CategoriesControllerTests
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        var updateDto = new UpdateCategoryRequestDto
+        var updateDto = new UpdateCategoryDto
         {
             Name = "Updated Name",
             Description = "Updated description",

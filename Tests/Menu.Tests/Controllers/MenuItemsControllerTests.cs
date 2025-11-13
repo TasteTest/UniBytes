@@ -108,7 +108,7 @@ public class MenuItemsControllerTests
     {
         // Arrange
         var itemId = Guid.NewGuid();
-        var updateDto = new UpdateMenuItemRequestDto
+        var updateDto = new UpdateMenuItemDto
         {
             CategoryId = Guid.NewGuid(),
             Name = "Updated Burger",
