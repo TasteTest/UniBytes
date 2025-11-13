@@ -1,7 +1,7 @@
 # UniBytes Testing Guide 🧪
-<!-- Ctrl + Shit + V for preview with Markdown All in One -->
+<!-- Ctrl + Shit + v for preview with Markdown All in One -->
 **Last Updated:** November 13, 2025  
-**Author:** Development Team
+**Author:** Elisa :)
 
 ---
 

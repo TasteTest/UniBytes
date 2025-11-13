@@ -22,7 +22,8 @@ dist/
 coverage/
 .nyc_output/
 *.lcov
-\TESTING_GUIDE.html
+TESTING_GUIDE.html
+**/TESTING_GUIDE.html
 # Test artifacts
 **/TestResults/
 **/coveragereport/
