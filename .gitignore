@@ -24,6 +24,7 @@ coverage/
 *.lcov
 TESTING_GUIDE.html
 **/TESTING_GUIDE.html
+**/MENU_DETAILS.md
 # Test artifacts
 **/TestResults/
 **/coveragereport/
