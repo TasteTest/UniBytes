@@ -1,0 +1,26 @@
+# Test results
+TestResults/
+**/TestResults/
+
+# Coverage reports
+coveragereport/
+**/coveragereport/
+*.coverage
+*.coveragexml
+coverage.cobertura.xml
+coverage.json
+
+# Build outputs
+bin/
+obj/
+**/bin/
+**/obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
