@@ -1,58 +1,141 @@
 "use client"
 
-import { Gift, Star, TrendingUp, Award } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Gift, Star, TrendingUp, Award, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-
-interface Reward {
-  id: string
-  name: string
-  description: string
-  pointsRequired: number
-  available: boolean
-}
-
-const mockRewards: Reward[] = [
-  {
-    id: "1",
-    name: "Free Cookie",
-    description: "Get a free chocolate chip cookie",
-    pointsRequired: 50,
-    available: true,
-  },
-  {
-    id: "2",
-    name: "Free Drink",
-    description: "Any size fountain drink",
-    pointsRequired: 100,
-    available: true,
-  },
-  {
-    id: "3",
-    name: "$5 Off",
-    description: "$5 off your next order",
-    pointsRequired: 200,
-    available: true,
-  },
-  {
-    id: "4",
-    name: "Free Meal",
-    description: "Any menu item up to $15",
-    pointsRequired: 500,
-    available: true,
-  },
-]
+import { useToast } from "@/hooks/use-toast"
+import { loyaltyService } from "@/lib/api/loyalty"
+import { AVAILABLE_REWARDS } from "@/lib/config/rewards"
+import type { LoyaltyAccountDetails } from "@/lib/types/loyalty.types"
 
 export default function LoyaltyPage() {
-  const currentPoints = 175
-  const nextReward = mockRewards.find((r) => r.pointsRequired > currentPoints)
+  const [accountDetails, setAccountDetails] = useState<LoyaltyAccountDetails | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [redeeming, setRedeeming] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  // TODO: Replace with actual user ID from auth context/session
+  // For now, using a demo user ID
+  const userId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+  useEffect(() => {
+    loadLoyaltyData()
+  }, [])
+
+  const loadLoyaltyData = async () => {
+    try {
+      setLoading(true)
+      const response = await loyaltyService.getOrCreateAccount(userId)
+      
+      if (!response.isSuccess) {
+        throw new Error(response.error || "Failed to load account")
+      }
+
+      // Get full details
+      const detailsResponse = await loyaltyService.getAccountDetails(userId)
+      
+      if (detailsResponse.isSuccess && detailsResponse.data) {
+        setAccountDetails(detailsResponse.data)
+      }
+    } catch (error) {
+      console.error("Error loading loyalty data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load loyalty data. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRedeem = async (rewardId: string, points: number, rewardName: string) => {
+    if (!accountDetails) return
+
+    try {
+      setRedeeming(rewardId)
+      
+      const reward = AVAILABLE_REWARDS.find(r => r.id === rewardId)
+      if (!reward) return
+
+      const response = await loyaltyService.redeemPoints({
+        userId,
+        points,
+        rewardType: reward.rewardType,
+        rewardMetadata: {
+          rewardId,
+          rewardName,
+          rewardDescription: reward.description,
+          ...reward.metadata,
+        },
+      })
+
+      if (!response.isSuccess) {
+        throw new Error(response.error || "Failed to redeem points")
+      }
+
+      toast({
+        title: "Success! 🎉",
+        description: `You've redeemed ${rewardName}`,
+      })
+
+      // Reload data
+      await loadLoyaltyData()
+    } catch (error: any) {
+      toast({
+        title: "Redemption Failed",
+        description: error.message || "Failed to redeem reward",
+        variant: "destructive",
+      })
+    } finally {
+      setRedeeming(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-8 max-w-4xl flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!accountDetails) {
+    return (
+      <div className="container py-8 max-w-4xl">
+        <Card className="card-glass border-none">
+          <CardContent className="pt-6 text-center">
+            <p className="text-muted-foreground mb-4">Failed to load loyalty account</p>
+            <Button onClick={loadLoyaltyData}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const currentPoints = accountDetails.account.pointsBalance
+  const tierName = accountDetails.account.tierName
+  const nextReward = AVAILABLE_REWARDS.find((r) => r.pointsRequired > currentPoints)
   const pointsToNext = nextReward ? nextReward.pointsRequired - currentPoints : 0
   const progressToNext = nextReward
     ? (currentPoints / nextReward.pointsRequired) * 100
     : 100
+
+  // Get recent transactions (earned points)
+  const recentActivity = accountDetails.recentTransactions
+    .filter(t => t.changeAmount > 0)
+    .slice(0, 5)
+    .map(t => ({
+      date: new Date(t.createdAt).toLocaleDateString(),
+      description: t.reason,
+      points: `+${t.changeAmount}`,
+    }))
 
   return (
     <div className="container py-8 max-w-4xl">
@@ -68,6 +151,9 @@ export default function LoyaltyPage() {
             <div>
               <h2 className="text-5xl font-bold text-gradient mb-2">{currentPoints}</h2>
               <p className="text-muted-foreground">Total Points</p>
+              <Badge variant="outline" className="mt-2">
+                {tierName}
+              </Badge>
             </div>
             {nextReward && (
               <div className="max-w-md mx-auto space-y-2">
@@ -132,8 +218,10 @@ export default function LoyaltyPage() {
           Available Rewards
         </h2>
         <div className="grid md:grid-cols-2 gap-4">
-          {mockRewards.map((reward) => {
+          {AVAILABLE_REWARDS.map((reward) => {
             const canRedeem = currentPoints >= reward.pointsRequired
+            const isRedeeming = redeeming === reward.id
+            
             return (
               <Card
                 key={reward.id}
@@ -166,7 +254,12 @@ export default function LoyaltyPage() {
                       <span className="font-bold">{reward.pointsRequired}</span>
                       <span className="text-sm text-muted-foreground">points</span>
                     </div>
-                    <Button disabled={!canRedeem} size="sm">
+                    <Button 
+                      disabled={!canRedeem || isRedeeming} 
+                      size="sm"
+                      onClick={() => handleRedeem(reward.id, reward.pointsRequired, reward.name)}
+                    >
+                      {isRedeeming && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                       {canRedeem ? "Redeem" : "Not Available"}
                     </Button>
                   </div>
@@ -184,28 +277,65 @@ export default function LoyaltyPage() {
           <CardDescription>Your latest points earned</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[
-              { date: "Today", description: "Order #ORD-001", points: "+150" },
-              { date: "Yesterday", description: "Order #ORD-002", points: "+120" },
-              { date: "3 days ago", description: "Order #ORD-003", points: "+89" },
-            ].map((activity, index) => (
-              <div key={index}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{activity.description}</p>
-                    <p className="text-sm text-muted-foreground">{activity.date}</p>
+          {recentActivity.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">
+              No activity yet. Start ordering to earn points!
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {recentActivity.map((activity, index) => (
+                <div key={index}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{activity.description}</p>
+                      <p className="text-sm text-muted-foreground">{activity.date}</p>
+                    </div>
+                    <div className="text-lg font-bold text-primary">
+                      {activity.points}
+                    </div>
                   </div>
-                  <div className="text-lg font-bold text-primary">
-                    {activity.points}
-                  </div>
+                  {index < recentActivity.length - 1 && <Separator className="mt-4" />}
                 </div>
-                {index < 2 && <Separator className="mt-4" />}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Redemption History */}
+      {accountDetails.recentRedemptions.length > 0 && (
+        <Card className="card-glass border-none mt-8">
+          <CardHeader>
+            <CardTitle>Redemption History</CardTitle>
+            <CardDescription>Your redeemed rewards</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {accountDetails.recentRedemptions.slice(0, 5).map((redemption, index) => {
+                const metadata = JSON.parse(redemption.rewardMetadata || '{}')
+                return (
+                  <div key={redemption.id}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {metadata.rewardName || redemption.rewardType}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(redemption.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-lg font-bold text-destructive">
+                        -{redemption.pointsUsed}
+                      </div>
+                    </div>
+                    {index < accountDetails.recentRedemptions.length - 1 && <Separator className="mt-4" />}
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

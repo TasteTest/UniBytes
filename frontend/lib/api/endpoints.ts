@@ -38,5 +38,18 @@ export const endpoints = {
     byEvent: (eventType: string) => `/useranalytics/event/${eventType}`,
     dateRange: '/useranalytics/date-range',
   },
+  
+  // Loyalty endpoints
+  loyalty: {
+    base: '/loyaltyaccounts',
+    byId: (id: string) => `/loyaltyaccounts/${id}`,
+    byUserId: (userId: string) => `/loyaltyaccounts/user/${userId}`,
+    details: (userId: string) => `/loyaltyaccounts/user/${userId}/details`,
+    balance: (userId: string) => `/loyaltyaccounts/user/${userId}/balance`,
+    addPoints: '/loyaltyaccounts/add-points',
+    redeemPoints: '/loyaltyaccounts/redeem-points',
+    active: '/loyaltyaccounts/active',
+    byTier: (tier: number) => `/loyaltyaccounts/tier/${tier}`,
+  },
 } as const
 
