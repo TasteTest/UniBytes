@@ -18,9 +18,9 @@ export default function LoyaltyPage() {
   const [redeeming, setRedeeming] = useState<string | null>(null)
   const { toast } = useToast()
 
-  // TODO: Replace with actual user ID from auth context/session
+
   // For now, using a demo user ID
-  const userId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  const userId = "3fa85f64-5717-4562-b3fc-2c963f66afa7"
 
   useEffect(() => {
     loadLoyaltyData()

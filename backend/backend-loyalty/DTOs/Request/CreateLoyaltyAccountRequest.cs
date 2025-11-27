@@ -12,7 +12,7 @@ public class CreateLoyaltyAccountRequest
 
     public long PointsBalance { get; set; } = 0;
 
-    public int Tier { get; set; } = 0; // Bronze by default
+    public int Tier { get; set; } = 0; // bronze by default
 
     public bool IsActive { get; set; } = true;
 }

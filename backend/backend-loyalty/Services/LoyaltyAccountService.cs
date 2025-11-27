@@ -1,5 +1,6 @@
 using AutoMapper;
 using backend_loyalty.Common;
+using backend_loyalty.Common.Enums;
 using backend_loyalty.DTOs.Request;
 using backend_loyalty.DTOs.Response;
 using backend_loyalty.Model;
@@ -18,11 +19,44 @@ public class LoyaltyAccountService : ILoyaltyAccountService
     private readonly IMapper _mapper;
     private readonly ILogger<LoyaltyAccountService> _logger;
 
+    // Tier thresholds based on points
+    private const long BRONZE_THRESHOLD = 0;
+    private const long SILVER_THRESHOLD = 100;
+    private const long GOLD_THRESHOLD = 500;
+    private const long PLATINUM_THRESHOLD = 1000;
+
     public LoyaltyAccountService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<LoyaltyAccountService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Calculate tier based on points balance
+    /// </summary>
+    private LoyaltyTier CalculateTier(long pointsBalance)
+    {
+        if (pointsBalance >= PLATINUM_THRESHOLD) return LoyaltyTier.Platinum;
+        if (pointsBalance >= GOLD_THRESHOLD) return LoyaltyTier.Gold;
+        if (pointsBalance >= SILVER_THRESHOLD) return LoyaltyTier.Silver;
+        return LoyaltyTier.Bronze;
+    }
+
+    /// <summary>
+    /// Update account tier based on current points balance
+    /// </summary>
+    private void UpdateAccountTier(LoyaltyAccount account)
+    {
+        var newTier = CalculateTier(account.PointsBalance);
+        if (account.Tier != newTier)
+        {
+            var oldTier = account.Tier;
+            account.Tier = newTier;
+            account.UpdatedAt = DateTime.UtcNow;
+            _logger.LogInformation("Updated tier for account {AccountId} from {OldTier} to {NewTier} (Points: {Points})", 
+                account.Id, oldTier, newTier, account.PointsBalance);
+        }
     }
 
     public async Task<Result<LoyaltyAccountResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -239,9 +273,16 @@ public class LoyaltyAccountService : ILoyaltyAccountService
                 return Result<LoyaltyAccountResponse>.Failure($"Failed to add points for user {request.UserId}");
             }
 
+            // Get updated account and recalculate tier
+            var account = await _unitOfWork.LoyaltyAccounts.GetByUserIdAsync(request.UserId, cancellationToken);
+            if (account != null)
+            {
+                UpdateAccountTier(account);
+                await _unitOfWork.LoyaltyAccounts.UpdateAsync(account, cancellationToken);
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var account = await _unitOfWork.LoyaltyAccounts.GetByUserIdAsync(request.UserId, cancellationToken);
             var response = _mapper.Map<LoyaltyAccountResponse>(account!);
 
             _logger.LogInformation("Added {Points} points to user {UserId}", request.Points, request.UserId);
@@ -282,10 +323,18 @@ public class LoyaltyAccountService : ILoyaltyAccountService
                 return Result<LoyaltyRedemptionResponse>.Failure("Failed to deduct points");
             }
 
+            // Get updated account and recalculate tier
+            account = await _unitOfWork.LoyaltyAccounts.GetByUserIdAsync(request.UserId, cancellationToken);
+            if (account != null)
+            {
+                UpdateAccountTier(account);
+                await _unitOfWork.LoyaltyAccounts.UpdateAsync(account, cancellationToken);
+            }
+
             // Create redemption record
             var redemption = new LoyaltyRedemption
             {
-                LoyaltyAccountId = account.Id,
+                LoyaltyAccountId = account!.Id,
                 PointsUsed = request.Points,
                 RewardType = request.RewardType,
                 RewardMetadata = request.RewardMetadata ?? "{}",

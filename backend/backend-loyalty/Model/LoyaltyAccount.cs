@@ -13,7 +13,7 @@ public class LoyaltyAccount : BaseEntity
     public LoyaltyTier Tier { get; set; } = LoyaltyTier.Bronze;
     public bool IsActive { get; set; } = true;
 
-    // Navigation properties
+    
     public virtual ICollection<LoyaltyTransaction> LoyaltyTransactions { get; set; } = new List<LoyaltyTransaction>();
     public virtual ICollection<LoyaltyRedemption> LoyaltyRedemptions { get; set; } = new List<LoyaltyRedemption>();
 }

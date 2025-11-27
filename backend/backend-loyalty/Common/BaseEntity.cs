@@ -1,8 +1,5 @@
 namespace backend_loyalty.Common;
 
-/// <summary>
-/// Base entity class for common properties
-/// </summary>
 public abstract class BaseEntity
 {
     public Guid Id { get; set; } = Guid.NewGuid();

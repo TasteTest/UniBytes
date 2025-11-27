@@ -10,7 +10,7 @@ public static class DatabaseConfiguration
 {
     public static IServiceCollection AddDatabaseConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
-        // Try to get connection string from environment variable first, then from configuration
+        
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
             ?? configuration.GetConnectionString("DefaultConnection")
             ?? BuildConnectionStringFromEnv();
@@ -34,7 +34,7 @@ public static class DatabaseConfiguration
                 npgsqlOptions.CommandTimeout(30);
             });
 
-            // Enable sensitive data logging in development
+            
             if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
             {
                 options.EnableSensitiveDataLogging();

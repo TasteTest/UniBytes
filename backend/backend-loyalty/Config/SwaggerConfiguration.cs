@@ -19,8 +19,8 @@ public static class SwaggerConfiguration
                 Description = "API for managing loyalty accounts, points, and redemptions",
                 Contact = new OpenApiContact
                 {
-                    Name = "CampusEats Team",
-                    Email = "support@campuseats.com"
+                    Name = "Teo",
+                    Email = "teo@campuseats.com"
                 }
             });
 
