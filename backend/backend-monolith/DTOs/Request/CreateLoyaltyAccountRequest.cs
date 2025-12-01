@@ -1,0 +1,18 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace backend_monolith.DTOs.Request;
+
+/// <summary>
+/// Request DTO for creating a new loyalty account
+/// </summary>
+public class CreateLoyaltyAccountRequest
+{
+    [Required]
+    public Guid UserId { get; set; }
+
+    public long PointsBalance { get; set; } = 0;
+
+    public int Tier { get; set; } = 0; // bronze by default
+
+    public bool IsActive { get; set; } = true;
+}

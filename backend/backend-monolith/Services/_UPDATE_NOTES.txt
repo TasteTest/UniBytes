@@ -1,0 +1,21 @@
+REMAINING SERVICE UPDATES NEEDED (Complex Services):
+
+1. LoyaltyAccountService.cs:
+   - Inject: ILoyaltyAccountRepository, ILoyaltyRedemptionRepository, ILoyaltyTransactionRepository
+   - Replace _unitOfWork.LoyaltyAccounts with _loyaltyAccountRepository
+   - Replace _unitOfWork.LoyaltyRedemptions with _loyaltyRedemptionRepository
+   - Replace _unitOfWork.LoyaltyTransactions with _loyaltyTransactionRepository
+   - Remove _unitOfWork.SaveChangesAsync calls
+
+2. StripeService.cs:
+   - Inject: IPaymentRepository, IIdempotencyKeyRepository
+   - Replace _unitOfWork.Payments with _paymentRepository
+   - Replace _unitOfWork.IdempotencyKeys with _idempotencyKeyRepository
+   - Remove _unitOfWork.SaveChangesAsync calls
+
+3. AuthService.cs:
+   - Inject: IUserRepository, IOAuthProviderRepository, ApplicationDbContext
+   - Replace _unitOfWork.Users with _userRepository
+   - Replace _unitOfWork.OAuthProviders with _oauthProviderRepository
+   - Use ApplicationDbContext for transactions (BeginTransaction, etc.)
+   - Remove _unitOfWork.SaveChangesAsync calls
