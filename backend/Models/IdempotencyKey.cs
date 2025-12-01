@@ -1,0 +1,14 @@
+using backend.Common;
+
+namespace backend.Modelss;
+
+/// <summary>
+/// Idempotency key entity for safe retries
+/// </summary>
+public class IdempotencyKey : BaseEntity
+{
+    public string Key { get; set; } = string.Empty;
+    public Guid? UserId { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
+}
+

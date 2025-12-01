@@ -23,135 +23,33 @@ services:
       timeout: 5s
       retries: 5
 
-  # Commented out - run backends locally during development
-  # backend-user:
-  #   build:
-  #     context: ./backend/backend-user
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-user
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-users;Database=users_db;Username=users_user;Password=users_pass
-  #   ports:
-  #     - "5001:8080"
-  #   depends_on:
-  #     db-users:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-kitchen:
-  #   build:
-  #     context: ./backend/backend-kitchen
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-kitchen
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-kitchen;Database=kitchen_db;Username=kitchen_user;Password=kitchen_pass
-  #   ports:
-  #     - "5002:8080"
-  #   depends_on:
-  #     db-kitchen:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-loyalty:
-  #   build:
-  #     context: ./backend/backend-loyalty
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-loyalty
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-loyalty;Database=loyalty_db;Username=loyalty_user;Password=loyalty_pass
-  #   ports:
-  #     - "5003:8080"
-  #   depends_on:
-  #     db-loyalty:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-menu:
-  #   build:
-  #     context: ./backend/backend-menu
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-menu
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-menu;Database=menu_db;Username=menu_user;Password=menu_pass
-  #   ports:
-  #     - "5004:8080"
-  #   depends_on:
-  #     db-menu:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-order:
-  #   build:
-  #     context: ./backend/backend-order
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-order
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-orders;Database=orders_db;Username=orders_user;Password=orders_pass
-  #   ports:
-  #     - "5005:8080"
-  #   depends_on:
-  #     db-orders:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-payment:
-  #   build:
-  #     context: ./backend/backend-payment
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-payment
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-payments;Database=payments_db;Username=payments_user;Password=payments_pass
-  #   ports:
-  #     - "5006:8080"
-  #   depends_on:
-  #     db-payments:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # ==================== FRONTEND ====================
-  
-  # Commented out - run frontend locally during development
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-frontend
-  #   environment:
-  #     - NODE_ENV=production
-  #     # Point frontend to monolith API
-  #     - NEXT_PUBLIC_API_URL=http://localhost:5000
-  #     - NEXTAUTH_URL=http://localhost:3000
-  #     - NEXTAUTH_SECRET=your-secret-key-change-in-production
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - backend-user
-  #     - backend-kitchen
-  #     - backend-loyalty
-  #     - backend-menu
-  #     - backend-order
-  #     - backend-payment
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
+  # ==================== BACKEND (MONOLITH) ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campuseats-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      # ASP.NET Core inside container will listen on 8080
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
+      # Single DB wiring for ApplicationDbContext
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=restaurant_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      # Stripe keys (override in your shell / deployment env)
+      - Stripe__SecretKey=${Stripe__SecretKey:-sk_test_placeholder}
+      - Stripe__WebhookSecret=${Stripe__WebhookSecret:-whsec_placeholder}
+    ports:
+      - "5267:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - campuseats-network
+    restart: unless-stopped
 
 # ==================== VOLUMES ====================
 
