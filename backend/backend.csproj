@@ -35,4 +35,14 @@
         <None Remove="backend-order/**" />
     </ItemGroup>
 
+    <!-- Exclude Tests folders from the main project compilation.
+         This excludes:
+         1. backend/Tests folder (new tests inside backend directory)
+         2. Root-level Tests folder (old tests - already outside project scope, but explicit exclusion for safety) -->
+    <ItemGroup>
+        <Compile Remove="Tests/**/*.cs" />
+        <Content Remove="Tests/**" />
+        <None Remove="Tests/**" />
+    </ItemGroup>
+
 </Project>
