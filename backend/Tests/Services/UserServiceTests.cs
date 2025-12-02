@@ -1,10 +1,9 @@
 using AutoMapper;
-using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
+using backend.DTOs.User.Request;
+using backend.DTOs.User.Response;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -16,19 +15,18 @@ public class UserServiceTests
 {
     private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly Mock<IMapper> _mockMapper;
-    private readonly Mock<ILogger<UserService>> _mockLogger;
     private readonly UserService _userService;
 
     public UserServiceTests()
     {
         _mockUserRepository = new Mock<IUserRepository>();
         _mockMapper = new Mock<IMapper>();
-        _mockLogger = new Mock<ILogger<UserService>>();
+        var mockLogger = new Mock<ILogger<UserService>>();
 
         _userService = new UserService(
             _mockUserRepository.Object,
             _mockMapper.Object,
-            _mockLogger.Object);
+            mockLogger.Object);
     }
 
     [Fact]
@@ -65,7 +63,7 @@ public class UserServiceTests
         result.Should().NotBeNull();
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
-        result.Data.Email.Should().Be("test@example.com");
+        result.Data?.Email.Should().Be("test@example.com");
 
         _mockUserRepository.Verify(x => x.GetByIdAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
         _mockMapper.Verify(x => x.Map<UserResponse>(user), Times.Once);

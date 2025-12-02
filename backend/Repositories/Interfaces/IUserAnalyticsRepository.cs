@@ -1,4 +1,4 @@
-using backend.Modelss;
+using backend.Models;
 
 namespace backend.Repositories.Interfaces;
 

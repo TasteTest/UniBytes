@@ -1,6 +1,6 @@
 using backend.Common.Enums;
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -93,9 +93,10 @@ public class PaymentRepositoryTests : IDisposable
         var result = await _repository.GetByUserIdAsync(userId);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(p => p.UserId == userId).Should().BeTrue();
-        result.First().Amount.Should().Be(20m); // Most recent first
+        var enumerable = result.ToList();
+        enumerable.Should().HaveCount(2);
+        enumerable.All(p => p.UserId == userId).Should().BeTrue();
+        enumerable.First().Amount.Should().Be(20m); // Most recent first
     }
 
     [Fact]

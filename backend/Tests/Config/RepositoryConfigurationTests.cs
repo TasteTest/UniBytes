@@ -1,6 +1,4 @@
 using backend.Config;
-using backend.Modelss;
-using backend.Repositories;
 using backend.Repositories.Interfaces;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;

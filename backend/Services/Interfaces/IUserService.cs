@@ -1,7 +1,7 @@
 using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
+using backend.DTOs.User.Request;
+using backend.DTOs.User.Response;
 
 namespace backend.Services.Interfaces;
 

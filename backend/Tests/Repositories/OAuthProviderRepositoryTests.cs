@@ -1,6 +1,6 @@
 using backend.Common.Enums;
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -60,8 +60,9 @@ public class OAuthProviderRepositoryTests : IDisposable
         var result = await _repository.GetByUserIdAsync(userId);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(p => p.UserId == userId).Should().BeTrue();
+        var oAuthProviders = result.ToList();
+        oAuthProviders.Should().HaveCount(2);
+        oAuthProviders.All(p => p.UserId == userId).Should().BeTrue();
     }
 
     [Fact]

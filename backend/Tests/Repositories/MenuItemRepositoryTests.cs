@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -79,8 +79,9 @@ public class MenuItemRepositoryTests : IDisposable
         var result = await _repository.GetAllAsync();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(i => i.Available).Should().BeTrue();
+        var menuItems = result.ToList();
+        menuItems.Should().HaveCount(2);
+        menuItems.All(i => i.Available).Should().BeTrue();
     }
 
     [Fact]
@@ -105,8 +106,9 @@ public class MenuItemRepositoryTests : IDisposable
         var result = await _repository.GetByCategoryIdAsync(categoryId1);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(i => i.CategoryId == categoryId1 && i.Available).Should().BeTrue();
+        var menuItems = result.ToList();
+        menuItems.Should().HaveCount(2);
+        menuItems.All(i => i.CategoryId == categoryId1 && i.Available).Should().BeTrue();
     }
 
     [Fact]

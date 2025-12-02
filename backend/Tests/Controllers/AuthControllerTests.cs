@@ -1,9 +1,10 @@
 using backend.Common;
 using backend.Common.Enums;
 using backend.Controllers;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.DTOs.Auth.Request;
+using backend.DTOs.Auth.Response;
+using backend.DTOs.User.Response;
+using backend.Models;
 using backend.Services.Interfaces;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -18,7 +19,6 @@ public class AuthControllerTests
 {
     private readonly Mock<IAuthService> _mockAuthService;
     private readonly Mock<IUserService> _mockUserService;
-    private readonly Mock<ILogger<AuthController>> _mockLogger;
     private readonly AuthController _controller;
     private readonly DefaultHttpContext _httpContext;
 
@@ -26,9 +26,9 @@ public class AuthControllerTests
     {
         _mockAuthService = new Mock<IAuthService>();
         _mockUserService = new Mock<IUserService>();
-        _mockLogger = new Mock<ILogger<AuthController>>();
+        var mockLogger = new Mock<ILogger<AuthController>>();
         _httpContext = new DefaultHttpContext();
-        _controller = new AuthController(_mockAuthService.Object, _mockUserService.Object, _mockLogger.Object)
+        _controller = new AuthController(_mockAuthService.Object, _mockUserService.Object, mockLogger.Object)
         {
             ControllerContext = new ControllerContext
             {

@@ -1,18 +1,14 @@
-using backend.Modelss;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using backend.Models;
 
 namespace backend.Data;
 
 /// <summary>
 /// Unified application database context for monolithic backend
 /// </summary>
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-    {
-    }
-
     // User service entities
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<OAuthProvider> OAuthProviders { get; set; } = null!;

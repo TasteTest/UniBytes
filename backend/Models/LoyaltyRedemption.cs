@@ -1,4 +1,4 @@
-namespace backend.Modelss;
+namespace backend.Models;
 
 /// <summary>
 /// Loyalty redemption model for tracking points usage
@@ -6,10 +6,10 @@ namespace backend.Modelss;
 public class LoyaltyRedemption
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid LoyaltyAccountId { get; set; }
-    public long PointsUsed { get; set; }
-    public string RewardType { get; set; } = string.Empty;
-    public string RewardMetadata { get; set; } = "{}";
+    public Guid LoyaltyAccountId { get; init; }
+    public long PointsUsed { get; init; }
+    public string RewardType { get; init; } = string.Empty;
+    public string RewardMetadata { get; init; } = "{}";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation property

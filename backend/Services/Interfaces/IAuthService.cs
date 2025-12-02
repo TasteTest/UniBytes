@@ -1,6 +1,6 @@
 using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
+using backend.DTOs.Auth.Request;
+using backend.DTOs.Auth.Response;
 
 namespace backend.Services.Interfaces;
 

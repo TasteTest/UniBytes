@@ -1,11 +1,10 @@
 using AutoMapper;
-using backend.Common;
 using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
+using backend.DTOs.OAuthProvider.Request;
+using backend.DTOs.OAuthProvider.Response;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -17,19 +16,18 @@ public class OAuthProviderServiceTests
 {
     private readonly Mock<IOAuthProviderRepository> _mockOAuthProviderRepository;
     private readonly Mock<IMapper> _mockMapper;
-    private readonly Mock<ILogger<OAuthProviderService>> _mockLogger;
     private readonly OAuthProviderService _oauthProviderService;
 
     public OAuthProviderServiceTests()
     {
         _mockOAuthProviderRepository = new Mock<IOAuthProviderRepository>();
         _mockMapper = new Mock<IMapper>();
-        _mockLogger = new Mock<ILogger<OAuthProviderService>>();
+        var mockLogger = new Mock<ILogger<OAuthProviderService>>();
 
         _oauthProviderService = new OAuthProviderService(
             _mockOAuthProviderRepository.Object,
             _mockMapper.Object,
-            _mockLogger.Object);
+            mockLogger.Object);
     }
 
     [Fact]

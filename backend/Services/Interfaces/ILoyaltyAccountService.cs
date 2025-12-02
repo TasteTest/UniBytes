@@ -1,6 +1,6 @@
 using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
+using backend.DTOs.Loyalty.Request;
+using backend.DTOs.Loyalty.Response;
 
 namespace backend.Services.Interfaces;
 

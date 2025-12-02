@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,35 +8,32 @@ namespace backend.Repositories;
 /// <summary>
 /// LoyaltyAccount repository implementation
 /// </summary>
-public class LoyaltyAccountRepository : Repository<LoyaltyAccount>, ILoyaltyAccountRepository
+public class LoyaltyAccountRepository(ApplicationDbContext context)
+    : Repository<LoyaltyAccount>(context), ILoyaltyAccountRepository
 {
-    public LoyaltyAccountRepository(ApplicationDbContext context) : base(context)
-    {
-    }
-
     public async Task<LoyaltyAccount?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        return await _dbSet
+        return await DbSet
             .FirstOrDefaultAsync(la => la.UserId == userId, cancellationToken);
     }
 
     public async Task<LoyaltyAccount?> GetByUserIdWithTransactionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        return await _dbSet
+        return await DbSet
             .Include(la => la.LoyaltyTransactions.OrderByDescending(t => t.CreatedAt))
             .FirstOrDefaultAsync(la => la.UserId == userId, cancellationToken);
     }
 
     public async Task<LoyaltyAccount?> GetByUserIdWithRedemptionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        return await _dbSet
+        return await DbSet
             .Include(la => la.LoyaltyRedemptions.OrderByDescending(r => r.CreatedAt))
             .FirstOrDefaultAsync(la => la.UserId == userId, cancellationToken);
     }
 
     public async Task<LoyaltyAccount?> GetByUserIdWithAllDataAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        return await _dbSet
+        return await DbSet
             .Include(la => la.LoyaltyTransactions.OrderByDescending(t => t.CreatedAt))
             .Include(la => la.LoyaltyRedemptions.OrderByDescending(r => r.CreatedAt))
             .FirstOrDefaultAsync(la => la.UserId == userId, cancellationToken);
@@ -44,21 +41,21 @@ public class LoyaltyAccountRepository : Repository<LoyaltyAccount>, ILoyaltyAcco
 
     public async Task<IEnumerable<LoyaltyAccount>> GetActiveAccountsAsync(CancellationToken cancellationToken = default)
     {
-        return await _dbSet
+        return await DbSet
             .Where(la => la.IsActive)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<LoyaltyAccount>> GetByTierAsync(int tier, CancellationToken cancellationToken = default)
     {
-        return await _dbSet
+        return await DbSet
             .Where(la => (int)la.Tier == tier && la.IsActive)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> UserHasAccountAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        return await _dbSet
+        return await DbSet
             .AnyAsync(la => la.UserId == userId, cancellationToken);
     }
 
@@ -79,7 +76,7 @@ public class LoyaltyAccountRepository : Repository<LoyaltyAccount>, ILoyaltyAcco
             CreatedAt = DateTime.UtcNow
         };
 
-        await _context.Set<LoyaltyTransaction>().AddAsync(transaction, cancellationToken);
+        await Context.Set<LoyaltyTransaction>().AddAsync(transaction, cancellationToken);
         return true;
     }
 
@@ -100,7 +97,7 @@ public class LoyaltyAccountRepository : Repository<LoyaltyAccount>, ILoyaltyAcco
             CreatedAt = DateTime.UtcNow
         };
 
-        await _context.Set<LoyaltyTransaction>().AddAsync(transaction, cancellationToken);
+        await Context.Set<LoyaltyTransaction>().AddAsync(transaction, cancellationToken);
         return true;
     }
 }

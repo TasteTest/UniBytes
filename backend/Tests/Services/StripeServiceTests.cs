@@ -1,20 +1,14 @@
-using System.Linq.Expressions;
-using System.Text.Json;
 using AutoMapper;
-using backend.Common;
-using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
 using backend.Services.Interfaces;
+using backend.DTOs.Payment.Request;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Stripe;
-using Stripe.Checkout;
 using Xunit;
 
 namespace Backend.Tests.Services;
@@ -26,7 +20,6 @@ public class StripeServiceTests
     private readonly Mock<IUserService> _mockUserService;
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<ILogger<StripeService>> _mockLogger;
-    private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly StripeService _stripeService;
 
     public StripeServiceTests()
@@ -36,12 +29,12 @@ public class StripeServiceTests
         _mockUserService = new Mock<IUserService>();
         _mockMapper = new Mock<IMapper>();
         _mockLogger = new Mock<ILogger<StripeService>>();
-        _mockConfiguration = new Mock<IConfiguration>();
+        var mockConfiguration = new Mock<IConfiguration>();
 
         // Setup configuration
-        _mockConfiguration.Setup(x => x["Stripe:SecretKey"])
+        mockConfiguration.Setup(x => x["Stripe:SecretKey"])
             .Returns("sk_test_123456789");
-        _mockConfiguration.Setup(x => x["Stripe:WebhookSecret"])
+        mockConfiguration.Setup(x => x["Stripe:WebhookSecret"])
             .Returns("whsec_test_123456789");
 
         _stripeService = new StripeService(
@@ -50,7 +43,7 @@ public class StripeServiceTests
             _mockUserService.Object,
             _mockMapper.Object,
             _mockLogger.Object,
-            _mockConfiguration.Object);
+            mockConfiguration.Object);
     }
 
     [Fact]
@@ -70,15 +63,15 @@ public class StripeServiceTests
         {
             OrderId = Guid.NewGuid(),
             UserEmail = "notfound@example.com",
-            LineItems = new List<CheckoutLineItem>
-            {
+            LineItems =
+            [
                 new CheckoutLineItem
                 {
                     Name = "Test Item",
                     UnitPrice = 10.00m,
                     Quantity = 1
                 }
-            },
+            ],
             SuccessUrl = "http://example.com/success",
             CancelUrl = "http://example.com/cancel"
         };
@@ -105,10 +98,7 @@ public class StripeServiceTests
             OrderId = Guid.NewGuid(),
             UserEmail = "test@example.com",
             IdempotencyKey = "duplicate_key",
-            LineItems = new List<CheckoutLineItem>
-            {
-                new CheckoutLineItem { Name = "Item", UnitPrice = 10m, Quantity = 1 }
-            },
+            LineItems = [new CheckoutLineItem { Name = "Item", UnitPrice = 10m, Quantity = 1 }],
             SuccessUrl = "http://example.com/success",
             CancelUrl = "http://example.com/cancel"
         };
@@ -135,7 +125,7 @@ public class StripeServiceTests
     }
 
     [Fact]
-    public async Task CreateCheckoutSessionAsync_ValidRequest_CreatesPaymentRecord()
+    public Task CreateCheckoutSessionAsync_ValidRequest_CreatesPaymentRecord()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -143,8 +133,8 @@ public class StripeServiceTests
         {
             OrderId = Guid.NewGuid(),
             UserEmail = "test@example.com",
-            LineItems = new List<CheckoutLineItem>
-            {
+            LineItems =
+            [
                 new CheckoutLineItem
                 {
                     Name = "Test Item",
@@ -153,7 +143,7 @@ public class StripeServiceTests
                     Quantity = 2,
                     ImageUrl = "http://example.com/image.jpg"
                 }
-            },
+            ],
             SuccessUrl = "http://example.com/success",
             CancelUrl = "http://example.com/cancel"
         };
@@ -167,19 +157,19 @@ public class StripeServiceTests
         _mockUserService.Setup(x => x.GetUserEntityByEmailAsync(request.UserEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
-        Payment? capturedPayment = null;
         _mockPaymentRepository.Setup(x => x.AddAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Payment p, CancellationToken ct) => { capturedPayment = p; return p; });
+            .ReturnsAsync((Payment p, CancellationToken ct) => p);
 
         // Note: This test will fail without proper Stripe configuration
         // In a real scenario, you'd want to mock the Stripe SDK or use integration tests
         
         // For unit testing, we verify that the payment is created with correct values
         Assert.True(true, "Stripe SDK operations require integration testing or SDK mocking");
+        return Task.CompletedTask;
     }
 
     [Fact]
-    public async Task VerifyPaymentAsync_PaymentNotFound_ReturnsFailure()
+    public Task VerifyPaymentAsync_PaymentNotFound_ReturnsFailure()
     {
         // Arrange
         var sessionId = "cs_test_123";
@@ -190,6 +180,7 @@ public class StripeServiceTests
         // Act
         // Note: This test requires mocking Stripe SDK which is complex
         Assert.True(true, "Stripe SDK operations require integration testing");
+        return Task.CompletedTask;
     }
 
     [Fact]
@@ -237,7 +228,7 @@ public class StripeServiceTests
     }
 
     [Fact]
-    public async Task CreateCheckoutSessionAsync_CalculatesTotalAmountCorrectly()
+    public Task CreateCheckoutSessionAsync_CalculatesTotalAmountCorrectly()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -245,11 +236,11 @@ public class StripeServiceTests
         {
             OrderId = Guid.NewGuid(),
             UserEmail = "test@example.com",
-            LineItems = new List<CheckoutLineItem>
-            {
+            LineItems =
+            [
                 new CheckoutLineItem { Name = "Item 1", UnitPrice = 10.00m, Quantity = 2 }, // 20.00
-                new CheckoutLineItem { Name = "Item 2", UnitPrice = 15.50m, Quantity = 3 }  // 46.50
-            },
+                new CheckoutLineItem { Name = "Item 2", UnitPrice = 15.50m, Quantity = 3 }
+            ],
             SuccessUrl = "http://example.com/success",
             CancelUrl = "http://example.com/cancel"
         };
@@ -259,18 +250,18 @@ public class StripeServiceTests
         _mockUserService.Setup(x => x.GetUserEntityByEmailAsync(request.UserEmail, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
-        Payment? capturedPayment = null;
         _mockPaymentRepository.Setup(x => x.AddAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Payment p, CancellationToken ct) => { capturedPayment = p; return p; });
+            .ReturnsAsync((Payment p, CancellationToken ct) => p);
 
         // Act & Assert
         // The payment amount should be 66.50 (20.00 + 46.50)
         // This requires Stripe SDK operations which need integration testing
         Assert.True(true, "Amount calculation verified, Stripe operations require integration testing");
+        return Task.CompletedTask;
     }
 
     [Fact]
-    public async Task CreateCheckoutSessionAsync_SavesIdempotencyKey_WhenProvided()
+    public Task CreateCheckoutSessionAsync_SavesIdempotencyKey_WhenProvided()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -280,10 +271,7 @@ public class StripeServiceTests
             OrderId = Guid.NewGuid(),
             UserEmail = "test@example.com",
             IdempotencyKey = idempotencyKey,
-            LineItems = new List<CheckoutLineItem>
-            {
-                new CheckoutLineItem { Name = "Item", UnitPrice = 10m, Quantity = 1 }
-            },
+            LineItems = [new CheckoutLineItem { Name = "Item", UnitPrice = 10m, Quantity = 1 }],
             SuccessUrl = "http://example.com/success",
             CancelUrl = "http://example.com/cancel"
         };
@@ -301,10 +289,11 @@ public class StripeServiceTests
 
         // Note: Full test requires Stripe SDK integration
         Assert.True(true, "Idempotency key saving verified, full test requires Stripe integration");
+        return Task.CompletedTask;
     }
 
     [Fact]
-    public async Task GetPaymentRepository_IsAccessible()
+    public Task GetPaymentRepository_IsAccessible()
     {
         // This test verifies that the service has access to required dependencies
         _mockPaymentRepository.Should().NotBeNull();
@@ -312,6 +301,7 @@ public class StripeServiceTests
         _mockUserService.Should().NotBeNull();
         _mockMapper.Should().NotBeNull();
         Assert.True(true);
+        return Task.CompletedTask;
     }
 }
 

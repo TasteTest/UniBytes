@@ -1,11 +1,10 @@
 using AutoMapper;
-using backend.Common;
 using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
+using backend.DTOs.Loyalty.Request;
+using backend.DTOs.Loyalty.Response;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,26 +17,24 @@ namespace Backend.Tests.Services;
 public class LoyaltyAccountServiceTests
 {
     private readonly Mock<ILoyaltyAccountRepository> _mockLoyaltyAccountRepository;
-    private readonly Mock<ILoyaltyTransactionRepository> _mockLoyaltyTransactionRepository;
     private readonly Mock<ILoyaltyRedemptionRepository> _mockLoyaltyRedemptionRepository;
     private readonly Mock<IMapper> _mockMapper;
-    private readonly Mock<ILogger<LoyaltyAccountService>> _mockLogger;
     private readonly LoyaltyAccountService _loyaltyAccountService;
 
     public LoyaltyAccountServiceTests()
     {
         _mockLoyaltyAccountRepository = new Mock<ILoyaltyAccountRepository>();
-        _mockLoyaltyTransactionRepository = new Mock<ILoyaltyTransactionRepository>();
+        var mockLoyaltyTransactionRepository = new Mock<ILoyaltyTransactionRepository>();
         _mockLoyaltyRedemptionRepository = new Mock<ILoyaltyRedemptionRepository>();
         _mockMapper = new Mock<IMapper>();
-        _mockLogger = new Mock<ILogger<LoyaltyAccountService>>();
+        var mockLogger = new Mock<ILogger<LoyaltyAccountService>>();
 
         _loyaltyAccountService = new LoyaltyAccountService(
             _mockLoyaltyAccountRepository.Object,
-            _mockLoyaltyTransactionRepository.Object,
+            mockLoyaltyTransactionRepository.Object,
             _mockLoyaltyRedemptionRepository.Object,
             _mockMapper.Object,
-            _mockLogger.Object);
+            mockLogger.Object);
     }
 
     [Fact]

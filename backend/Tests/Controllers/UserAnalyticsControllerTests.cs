@@ -1,8 +1,8 @@
 using backend.Common;
 using backend.Controllers;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.UserAnalytics.Request;
+using backend.DTOs.UserAnalytics.Response;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -14,14 +14,13 @@ namespace Backend.Tests.Controllers;
 public class UserAnalyticsControllerTests
 {
     private readonly Mock<IUserAnalyticsService> _mockUserAnalyticsService;
-    private readonly Mock<ILogger<UserAnalyticsController>> _mockLogger;
     private readonly UserAnalyticsController _controller;
 
     public UserAnalyticsControllerTests()
     {
         _mockUserAnalyticsService = new Mock<IUserAnalyticsService>();
-        _mockLogger = new Mock<ILogger<UserAnalyticsController>>();
-        _controller = new UserAnalyticsController(_mockUserAnalyticsService.Object, _mockLogger.Object);
+        var mockLogger = new Mock<ILogger<UserAnalyticsController>>();
+        _controller = new UserAnalyticsController(_mockUserAnalyticsService.Object, mockLogger.Object);
     }
 
     [Fact]

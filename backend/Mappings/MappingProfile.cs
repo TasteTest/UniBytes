@@ -1,7 +1,11 @@
 using AutoMapper;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
+using backend.DTOs.OAuthProvider.Request;
+using backend.DTOs.OAuthProvider.Response;
+using backend.DTOs.User.Request;
+using backend.DTOs.User.Response;
+using backend.DTOs.UserAnalytics.Request;
+using backend.DTOs.UserAnalytics.Response;
 
 namespace backend.Mappings;
 

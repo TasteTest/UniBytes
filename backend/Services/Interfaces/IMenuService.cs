@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using backend.Common;
-using backend.DTOs;
+using backend.DTOs.Menu.Request;
+using backend.DTOs.Menu.Response;
 
 namespace backend.Services;
 

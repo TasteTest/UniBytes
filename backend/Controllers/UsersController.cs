@@ -1,6 +1,6 @@
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.User.Request;
+using backend.DTOs.User.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -11,16 +11,9 @@ namespace backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class UsersController : ControllerBase
+public class UsersController(IUserService userService, ILogger<UsersController> logger) : ControllerBase
 {
-    private readonly IUserService _userService;
-    private readonly ILogger<UsersController> _logger;
-
-    public UsersController(IUserService userService, ILogger<UsersController> logger)
-    {
-        _userService = userService;
-        _logger = logger;
-    }
+    private readonly ILogger<UsersController> _logger = logger;
 
     /// <summary>
     /// Get all users
@@ -29,7 +22,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var result = await _userService.GetAllAsync(cancellationToken);
+        var result = await userService.GetAllAsync(cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -40,7 +33,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
     {
-        var result = await _userService.GetActiveUsersAsync(cancellationToken);
+        var result = await userService.GetActiveUsersAsync(cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -51,7 +44,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAdmins(CancellationToken cancellationToken)
     {
-        var result = await _userService.GetAdminUsersAsync(cancellationToken);
+        var result = await userService.GetAdminUsersAsync(cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -63,7 +56,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _userService.GetByIdAsync(id, cancellationToken);
+        var result = await userService.GetByIdAsync(id, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -75,7 +68,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByEmail(string email, CancellationToken cancellationToken)
     {
-        var result = await _userService.GetByEmailAsync(email, cancellationToken);
+        var result = await userService.GetByEmailAsync(email, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -92,7 +85,7 @@ public class UsersController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _userService.CreateAsync(createRequest, cancellationToken);
+        var result = await userService.CreateAsync(createRequest, cancellationToken);
         if (!result.IsSuccess)
         {
             return BadRequest(result.Error);
@@ -115,7 +108,7 @@ public class UsersController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _userService.UpdateAsync(id, updateRequest, cancellationToken);
+        var result = await userService.UpdateAsync(id, updateRequest, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -127,7 +120,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _userService.DeleteAsync(id, cancellationToken);
+        var result = await userService.DeleteAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
@@ -139,7 +132,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateLastLogin(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _userService.UpdateLastLoginAsync(id, cancellationToken);
+        var result = await userService.UpdateLastLoginAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 }

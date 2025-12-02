@@ -1,7 +1,7 @@
 using backend.Common;
 using backend.Common.Enums;
 
-namespace backend.Modelss;
+namespace backend.Models;
 
 /// <summary>
 /// Loyalty account model

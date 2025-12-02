@@ -1,12 +1,10 @@
 using backend.Common;
 using backend.Controllers;
-using backend.DTOs;
-using backend.DTOs.Response;
-using backend.Modelss;
-using backend.Repositories;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
-using backend.Services.Interfaces;
+using backend.DTOs.Menu.Request;
+using backend.DTOs.Menu.Response;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,17 +19,16 @@ public class MenuItemsControllerTests
     private readonly Mock<IBlobStorageService> _mockBlobStorage;
     private readonly Mock<IMenuItemRepository> _mockMenuItemRepo;
     private readonly MenuItemsController _controller;
-    private readonly DefaultHttpContext _httpContext;
 
     public MenuItemsControllerTests()
     {
         _mockMenuService = new Mock<IMenuService>();
         _mockBlobStorage = new Mock<IBlobStorageService>();
         _mockMenuItemRepo = new Mock<IMenuItemRepository>();
-        _httpContext = new DefaultHttpContext();
+        var httpContext = new DefaultHttpContext();
         _controller = new MenuItemsController(_mockMenuService.Object, _mockBlobStorage.Object, _mockMenuItemRepo.Object)
         {
-            ControllerContext = new ControllerContext { HttpContext = _httpContext }
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
         };
     }
 

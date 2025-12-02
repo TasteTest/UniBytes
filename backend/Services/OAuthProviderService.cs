@@ -1,47 +1,39 @@
 using AutoMapper;
 using backend.Common;
 using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services.Interfaces;
-using Microsoft.Extensions.Logging;
+using backend.DTOs.OAuthProvider.Request;
+using backend.DTOs.OAuthProvider.Response;
 
 namespace backend.Services;
 
 /// <summary>
 /// OAuth provider service implementation
 /// </summary>
-public class OAuthProviderService : IOAuthProviderService
+public class OAuthProviderService(
+    IOAuthProviderRepository oauthProviderRepository,
+    IMapper mapper,
+    ILogger<OAuthProviderService> logger)
+    : IOAuthProviderService
 {
-    private readonly IOAuthProviderRepository _oauthProviderRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<OAuthProviderService> _logger;
-
-    public OAuthProviderService(IOAuthProviderRepository oauthProviderRepository, IMapper mapper, ILogger<OAuthProviderService> logger)
-    {
-        _oauthProviderRepository = oauthProviderRepository;
-        _mapper = mapper;
-        _logger = logger;
-    }
-
     public async Task<Result<OAuthProviderResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var provider = await _oauthProviderRepository.GetByIdAsync(id, cancellationToken);
+            var provider = await oauthProviderRepository.GetByIdAsync(id, cancellationToken);
             if (provider == null)
             {
                 return Result<OAuthProviderResponse>.Failure($"OAuth provider with ID {id} not found");
             }
 
-            var providerResponse = _mapper.Map<OAuthProviderResponse>(provider);
+            var providerResponse = mapper.Map<OAuthProviderResponse>(provider);
             return Result<OAuthProviderResponse>.Success(providerResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting OAuth provider by ID {ProviderId}", id);
+            logger.LogError(ex, "Error getting OAuth provider by ID {ProviderId}", id);
             return Result<OAuthProviderResponse>.Failure($"Error retrieving OAuth provider: {ex.Message}");
         }
     }
@@ -50,13 +42,13 @@ public class OAuthProviderService : IOAuthProviderService
     {
         try
         {
-            var providers = await _oauthProviderRepository.GetByUserIdAsync(userId, cancellationToken);
-            var providerResponses = _mapper.Map<IEnumerable<OAuthProviderResponse>>(providers);
+            var providers = await oauthProviderRepository.GetByUserIdAsync(userId, cancellationToken);
+            var providerResponses = mapper.Map<IEnumerable<OAuthProviderResponse>>(providers);
             return Result<IEnumerable<OAuthProviderResponse>>.Success(providerResponses);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting OAuth providers for user {UserId}", userId);
+            logger.LogError(ex, "Error getting OAuth providers for user {UserId}", userId);
             return Result<IEnumerable<OAuthProviderResponse>>.Failure($"Error retrieving OAuth providers: {ex.Message}");
         }
     }
@@ -65,18 +57,18 @@ public class OAuthProviderService : IOAuthProviderService
     {
         try
         {
-            var oauthProvider = await _oauthProviderRepository.GetByProviderAndProviderIdAsync(provider, providerId, cancellationToken);
+            var oauthProvider = await oauthProviderRepository.GetByProviderAndProviderIdAsync(provider, providerId, cancellationToken);
             if (oauthProvider == null)
             {
                 return Result<OAuthProviderResponse>.Failure($"OAuth provider {provider} with ID {providerId} not found");
             }
 
-            var providerResponse = _mapper.Map<OAuthProviderResponse>(oauthProvider);
+            var providerResponse = mapper.Map<OAuthProviderResponse>(oauthProvider);
             return Result<OAuthProviderResponse>.Success(providerResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting OAuth provider {Provider} with ID {ProviderId}", provider, providerId);
+            logger.LogError(ex, "Error getting OAuth provider {Provider} with ID {ProviderId}", provider, providerId);
             return Result<OAuthProviderResponse>.Failure($"Error retrieving OAuth provider: {ex.Message}");
         }
     }
@@ -94,25 +86,25 @@ public class OAuthProviderService : IOAuthProviderService
             }
 
             // Check if OAuth provider already exists
-            var providerExists = await _oauthProviderRepository.ExistsAsync(createRequest.Provider, createRequest.ProviderId, cancellationToken);
+            var providerExists = await oauthProviderRepository.ExistsAsync(createRequest.Provider, createRequest.ProviderId, cancellationToken);
             if (providerExists)
             {
                 return Result<OAuthProviderResponse>.Failure($"OAuth provider {createRequest.Provider} with ID {createRequest.ProviderId} already exists");
             }
 
-            var provider = _mapper.Map<OAuthProvider>(createRequest);
+            var provider = mapper.Map<OAuthProvider>(createRequest);
             provider.CreatedAt = DateTime.UtcNow;
             provider.UpdatedAt = DateTime.UtcNow;
 
-            await _oauthProviderRepository.AddAsync(provider, cancellationToken);
+            await oauthProviderRepository.AddAsync(provider, cancellationToken);
 
-            var providerResponse = _mapper.Map<OAuthProviderResponse>(provider);
-            _logger.LogInformation("Created OAuth provider {Provider} for user {UserId}", createRequest.Provider, createRequest.UserId);
+            var providerResponse = mapper.Map<OAuthProviderResponse>(provider);
+            logger.LogInformation("Created OAuth provider {Provider} for user {UserId}", createRequest.Provider, createRequest.UserId);
             return Result<OAuthProviderResponse>.Success(providerResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating OAuth provider");
+            logger.LogError(ex, "Error creating OAuth provider");
             return Result<OAuthProviderResponse>.Failure($"Error creating OAuth provider: {ex.Message}");
         }
     }
@@ -121,24 +113,24 @@ public class OAuthProviderService : IOAuthProviderService
     {
         try
         {
-            var provider = await _oauthProviderRepository.GetByIdAsync(id, cancellationToken);
+            var provider = await oauthProviderRepository.GetByIdAsync(id, cancellationToken);
             if (provider == null)
             {
                 return Result<OAuthProviderResponse>.Failure($"OAuth provider with ID {id} not found");
             }
 
-            _mapper.Map(updateRequest, provider);
+            mapper.Map(updateRequest, provider);
             provider.UpdatedAt = DateTime.UtcNow;
 
-            await _oauthProviderRepository.UpdateAsync(provider, cancellationToken);
+            await oauthProviderRepository.UpdateAsync(provider, cancellationToken);
 
-            var providerResponse = _mapper.Map<OAuthProviderResponse>(provider);
-            _logger.LogInformation("Updated OAuth provider with ID {ProviderId}", id);
+            var providerResponse = mapper.Map<OAuthProviderResponse>(provider);
+            logger.LogInformation("Updated OAuth provider with ID {ProviderId}", id);
             return Result<OAuthProviderResponse>.Success(providerResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating OAuth provider {ProviderId}", id);
+            logger.LogError(ex, "Error updating OAuth provider {ProviderId}", id);
             return Result<OAuthProviderResponse>.Failure($"Error updating OAuth provider: {ex.Message}");
         }
     }
@@ -147,20 +139,20 @@ public class OAuthProviderService : IOAuthProviderService
     {
         try
         {
-            var provider = await _oauthProviderRepository.GetByIdAsync(id, cancellationToken);
+            var provider = await oauthProviderRepository.GetByIdAsync(id, cancellationToken);
             if (provider == null)
             {
                 return Result.Failure($"OAuth provider with ID {id} not found");
             }
 
-            await _oauthProviderRepository.DeleteAsync(provider, cancellationToken);
+            await oauthProviderRepository.DeleteAsync(provider, cancellationToken);
 
-            _logger.LogInformation("Deleted OAuth provider with ID {ProviderId}", id);
+            logger.LogInformation("Deleted OAuth provider with ID {ProviderId}", id);
             return Result.Success();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting OAuth provider {ProviderId}", id);
+            logger.LogError(ex, "Error deleting OAuth provider {ProviderId}", id);
             return Result.Failure($"Error deleting OAuth provider: {ex.Message}");
         }
     }

@@ -1,5 +1,5 @@
 using backend.Common.Enums;
-using backend.Modelss;
+using backend.Models;
 
 namespace backend.Repositories.Interfaces;
 

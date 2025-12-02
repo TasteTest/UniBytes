@@ -1,12 +1,11 @@
 using AutoMapper;
-using backend.Common;
 using backend.Common.Enums;
 using backend.Data;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
+using backend.DTOs.Auth.Request;
+using backend.DTOs.User.Response;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -21,7 +20,6 @@ public class AuthServiceTests
     private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly Mock<IOAuthProviderRepository> _mockOAuthProviderRepository;
     private readonly Mock<IMapper> _mockMapper;
-    private readonly Mock<ILogger<AuthService>> _mockLogger;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
@@ -37,14 +35,14 @@ public class AuthServiceTests
         _mockUserRepository = new Mock<IUserRepository>();
         _mockOAuthProviderRepository = new Mock<IOAuthProviderRepository>();
         _mockMapper = new Mock<IMapper>();
-        _mockLogger = new Mock<ILogger<AuthService>>();
+        var mockLogger = new Mock<ILogger<AuthService>>();
 
         _authService = new AuthService(
             _context,
             _mockUserRepository.Object,
             _mockOAuthProviderRepository.Object,
             _mockMapper.Object,
-            _mockLogger.Object);
+            mockLogger.Object);
     }
 
     [Fact]

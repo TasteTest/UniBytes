@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using backend.Modelss;
+using backend.Models;
 
-namespace backend.Repositories;
+namespace backend.Repositories.Interfaces;
 
 public interface IMenuItemRepository
 {

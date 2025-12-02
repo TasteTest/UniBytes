@@ -1,8 +1,8 @@
 using AutoMapper;
 using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
+using backend.DTOs.Loyalty.Request;
+using backend.DTOs.Loyalty.Response;
 
 namespace backend.Mappings;
 

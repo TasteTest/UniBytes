@@ -1,18 +1,18 @@
 using backend.Common;
 using backend.Common.Enums;
 
-namespace backend.Modelss;
+namespace backend.Models;
 
 /// <summary>
 /// Payment entity
 /// </summary>
 public class Payment : BaseEntity
 {
-    public Guid? OrderId { get; set; }
-    public Guid? UserId { get; set; }
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = "USD";
-    public PaymentProvider Provider { get; set; }
+    public Guid? OrderId { get; init; }
+    public Guid? UserId { get; init; }
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = "USD";
+    public PaymentProvider Provider { get; init; }
     public string? ProviderPaymentId { get; set; }
     public string? ProviderChargeId { get; set; }
     public PaymentStatus Status { get; set; }

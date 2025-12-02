@@ -1,24 +1,24 @@
 using backend.Common;
 
-namespace backend.Modelss;
+namespace backend.Models;
 
 /// <summary>
 /// User model
 /// </summary>
 public class User : BaseEntity
 {
-    public string Email { get; set; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
-    public string? Bio { get; set; }
-    public string? Location { get; set; }
+    public string? Bio { get; init; }
+    public string? Location { get; init; }
     public string? AvatarUrl { get; set; }
-    public bool IsActive { get; set; } = true;
-    public bool IsAdmin { get; set; } = false;
+    public bool IsActive { get; init; } = true;
+    public bool IsAdmin { get; init; }
     public DateTime? LastLoginAt { get; set; }
 
     // Navigation properties
-    public virtual ICollection<OAuthProvider> OAuthProviders { get; set; } = new List<OAuthProvider>();
-    public virtual ICollection<UserAnalytics> UserAnalytics { get; set; } = new List<UserAnalytics>();
+    public virtual ICollection<OAuthProvider> OAuthProviders { get; init; } = new List<OAuthProvider>();
+    public virtual ICollection<UserAnalytics> UserAnalytics { get; init; } = new List<UserAnalytics>();
 }
 

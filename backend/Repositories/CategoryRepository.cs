@@ -1,33 +1,22 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
+using backend.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Repositories;
 
-public class CategoryRepository : ICategoryRepository
+public class CategoryRepository(ApplicationDbContext context) : ICategoryRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public CategoryRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<MenuCategory?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.MenuCategories
+        return await context.MenuCategories
             .Include(c => c.MenuItems)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
     public async Task<IEnumerable<MenuCategory>> GetAllActiveAsync(CancellationToken ct = default)
     {
-        return await _context.MenuCategories
+        return await context.MenuCategories
             .Where(c => c.IsActive)
             .OrderBy(c => c.DisplayOrder)
             .ToListAsync(ct);
@@ -35,16 +24,16 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<MenuCategory> AddAsync(MenuCategory category, CancellationToken ct = default)
     {
-        _context.MenuCategories.Add(category);
-        await _context.SaveChangesAsync(ct);
+        context.MenuCategories.Add(category);
+        await context.SaveChangesAsync(ct);
         return category;
     }
 
     public async Task UpdateAsync(MenuCategory category, CancellationToken ct = default)
     {
         category.UpdatedAt = DateTime.UtcNow;
-        _context.MenuCategories.Update(category);
-        await _context.SaveChangesAsync(ct);
+        context.MenuCategories.Update(category);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
@@ -52,8 +41,8 @@ public class CategoryRepository : ICategoryRepository
         var category = await GetByIdAsync(id, ct);
         if (category != null)
         {
-            _context.MenuCategories.Remove(category);
-            await _context.SaveChangesAsync(ct);
+            context.MenuCategories.Remove(category);
+            await context.SaveChangesAsync(ct);
         }
     }
 }

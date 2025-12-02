@@ -1,54 +1,40 @@
 using AutoMapper;
 using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services.Interfaces;
+using backend.DTOs.Auth.Request;
+using backend.DTOs.Auth.Response;
+using backend.DTOs.User.Response;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace backend.Services;
 
 /// <summary>
 /// Authentication service implementation
 /// </summary>
-public class AuthService : IAuthService
+public class AuthService(
+    ApplicationDbContext context,
+    IUserRepository userRepository,
+    IOAuthProviderRepository oauthProviderRepository,
+    IMapper mapper,
+    ILogger<AuthService> logger)
+    : IAuthService
 {
-    private readonly ApplicationDbContext _context;
-    private readonly IUserRepository _userRepository;
-    private readonly IOAuthProviderRepository _oauthProviderRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<AuthService> _logger;
-
-    public AuthService(
-        ApplicationDbContext context,
-        IUserRepository userRepository,
-        IOAuthProviderRepository oauthProviderRepository,
-        IMapper mapper,
-        ILogger<AuthService> logger)
-    {
-        _context = context;
-        _userRepository = userRepository;
-        _oauthProviderRepository = oauthProviderRepository;
-        _mapper = mapper;
-        _logger = logger;
-    }
-
     public async Task<Result<AuthResponse>> AuthenticateWithGoogleAsync(GoogleAuthRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
             // Use execution strategy to wrap the entire transaction operation
             // This is required when retry on failure is enabled
-            var strategy = _context.Database.CreateExecutionStrategy();
+            var strategy = context.Database.CreateExecutionStrategy();
             return await strategy.ExecuteAsync(async () =>
             {
-                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
                 // Check if OAuth provider already exists
-                var existingOAuthProvider = await _oauthProviderRepository
+                var existingOAuthProvider = await oauthProviderRepository
                     .GetByProviderAndProviderIdAsync(request.Provider, request.ProviderId, cancellationToken);
 
                 User user;
@@ -57,7 +43,7 @@ public class AuthService : IAuthService
                 if (existingOAuthProvider != null)
                 {
                     // User already exists with this OAuth provider
-                    var existingUser = await _userRepository.GetByIdAsync(existingOAuthProvider.UserId, cancellationToken);
+                    var existingUser = await userRepository.GetByIdAsync(existingOAuthProvider.UserId, cancellationToken);
                     if (existingUser == null)
                     {
                         await transaction.RollbackAsync(cancellationToken);
@@ -71,7 +57,7 @@ public class AuthService : IAuthService
                     existingOAuthProvider.TokenExpiresAt = request.TokenExpiresAt;
                     existingOAuthProvider.UpdatedAt = DateTime.UtcNow;
 
-                    _context.Entry(existingOAuthProvider).State = EntityState.Modified;
+                    context.Entry(existingOAuthProvider).State = EntityState.Modified;
 
                     // Update user last login
                     user.LastLoginAt = DateTime.UtcNow;
@@ -91,14 +77,14 @@ public class AuthService : IAuthService
                         user.AvatarUrl = request.AvatarUrl;
                     }
 
-                    _context.Entry(user).State = EntityState.Modified;
+                    context.Entry(user).State = EntityState.Modified;
 
-                    _logger.LogInformation("Existing user {Email} authenticated with Google", user.Email);
+                    logger.LogInformation("Existing user {Email} authenticated with Google", user.Email);
                 }
                 else
                 {
                     // Check if user exists by email
-                    var existingUserByEmail = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+                    var existingUserByEmail = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
                     if (existingUserByEmail != null)
                     {
@@ -118,14 +104,14 @@ public class AuthService : IAuthService
                             UpdatedAt = DateTime.UtcNow
                         };
 
-                        await _context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
+                        await context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
 
                         // Update user last login
                         user.LastLoginAt = DateTime.UtcNow;
                         user.UpdatedAt = DateTime.UtcNow;
-                        _context.Entry(user).State = EntityState.Modified;
+                        context.Entry(user).State = EntityState.Modified;
 
-                        _logger.LogInformation("Linked Google OAuth to existing user {Email}", user.Email);
+                        logger.LogInformation("Linked Google OAuth to existing user {Email}", user.Email);
                     }
                     else
                     {
@@ -143,8 +129,8 @@ public class AuthService : IAuthService
                             UpdatedAt = DateTime.UtcNow
                         };
 
-                        await _context.Users.AddAsync(user, cancellationToken);
-                        await _context.SaveChangesAsync(cancellationToken); // Save to get user ID
+                        await context.Users.AddAsync(user, cancellationToken);
+                        await context.SaveChangesAsync(cancellationToken); // Save to get user ID
 
                         // Create OAuth provider
                         var newOAuthProvider = new OAuthProvider
@@ -160,17 +146,17 @@ public class AuthService : IAuthService
                             UpdatedAt = DateTime.UtcNow
                         };
 
-                        await _context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
+                        await context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
 
                         isNewUser = true;
-                        _logger.LogInformation("Created new user {Email} with Google OAuth", user.Email);
+                        logger.LogInformation("Created new user {Email} with Google OAuth", user.Email);
                     }
                 }
 
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                var userResponse = _mapper.Map<UserResponse>(user);
+                var userResponse = mapper.Map<UserResponse>(user);
                 var authResponse = new AuthResponse
                 {
                     UserId = user.Id.ToString(),
@@ -184,7 +170,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during Google authentication for email {Email}", request.Email);
+            logger.LogError(ex, "Error during Google authentication for email {Email}", request.Email);
             return Result<AuthResponse>.Failure($"Authentication error: {ex.Message}");
         }
     }

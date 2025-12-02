@@ -1,6 +1,6 @@
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.Loyalty.Request;
+using backend.DTOs.Loyalty.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -11,16 +11,12 @@ namespace backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class LoyaltyAccountsController : ControllerBase
+public class LoyaltyAccountsController(
+    ILoyaltyAccountService loyaltyAccountService,
+    ILogger<LoyaltyAccountsController> logger)
+    : ControllerBase
 {
-    private readonly ILoyaltyAccountService _loyaltyAccountService;
-    private readonly ILogger<LoyaltyAccountsController> _logger;
-
-    public LoyaltyAccountsController(ILoyaltyAccountService loyaltyAccountService, ILogger<LoyaltyAccountsController> logger)
-    {
-        _loyaltyAccountService = loyaltyAccountService;
-        _logger = logger;
-    }
+    private readonly ILogger<LoyaltyAccountsController> _logger = logger;
 
     /// <summary>
     /// Get all loyalty accounts
@@ -29,7 +25,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<LoyaltyAccountResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.GetAllAsync(cancellationToken);
+        var result = await loyaltyAccountService.GetAllAsync(cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -40,7 +36,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<LoyaltyAccountResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.GetActiveAccountsAsync(cancellationToken);
+        var result = await loyaltyAccountService.GetActiveAccountsAsync(cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -51,7 +47,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<LoyaltyAccountResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByTier(int tier, CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.GetByTierAsync(tier, cancellationToken);
+        var result = await loyaltyAccountService.GetByTierAsync(tier, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -63,7 +59,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.GetByIdAsync(id, cancellationToken);
+        var result = await loyaltyAccountService.GetByIdAsync(id, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -75,7 +71,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByUserId(Guid userId, CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.GetByUserIdAsync(userId, cancellationToken);
+        var result = await loyaltyAccountService.GetByUserIdAsync(userId, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -87,7 +83,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAccountDetails(Guid userId, CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.GetAccountDetailsAsync(userId, cancellationToken);
+        var result = await loyaltyAccountService.GetAccountDetailsAsync(userId, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -99,7 +95,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPointsBalance(Guid userId, CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.GetPointsBalanceAsync(userId, cancellationToken);
+        var result = await loyaltyAccountService.GetPointsBalanceAsync(userId, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -116,7 +112,7 @@ public class LoyaltyAccountsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _loyaltyAccountService.CreateAsync(createRequest, cancellationToken);
+        var result = await loyaltyAccountService.CreateAsync(createRequest, cancellationToken);
         if (!result.IsSuccess)
         {
             return BadRequest(result.Error);
@@ -139,7 +135,7 @@ public class LoyaltyAccountsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _loyaltyAccountService.UpdateAsync(id, updateRequest, cancellationToken);
+        var result = await loyaltyAccountService.UpdateAsync(id, updateRequest, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -151,7 +147,7 @@ public class LoyaltyAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _loyaltyAccountService.DeleteAsync(id, cancellationToken);
+        var result = await loyaltyAccountService.DeleteAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
@@ -168,7 +164,7 @@ public class LoyaltyAccountsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _loyaltyAccountService.AddPointsAsync(request, cancellationToken);
+        var result = await loyaltyAccountService.AddPointsAsync(request, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -185,7 +181,7 @@ public class LoyaltyAccountsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _loyaltyAccountService.RedeemPointsAsync(request, cancellationToken);
+        var result = await loyaltyAccountService.RedeemPointsAsync(request, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 }

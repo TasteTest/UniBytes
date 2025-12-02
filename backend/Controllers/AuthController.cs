@@ -1,5 +1,5 @@
-using backend.DTOs.Request;
 using backend.Services.Interfaces;
+using backend.DTOs.Auth.Request;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -9,22 +9,12 @@ namespace backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+public class AuthController(
+    IAuthService authService,
+    IUserService userService,
+    ILogger<AuthController> logger)
+    : ControllerBase
 {
-    private readonly IAuthService _authService;
-    private readonly IUserService _userService;
-    private readonly ILogger<AuthController> _logger;
-
-    public AuthController(
-        IAuthService authService, 
-        IUserService userService,
-        ILogger<AuthController> logger)
-    {
-        _authService = authService;
-        _userService = userService;
-        _logger = logger;
-    }
-
     /// <summary>
     /// Authenticates or registers a user via Google OAuth.
     /// </summary>
@@ -36,7 +26,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GoogleAuth([FromBody] GoogleAuthRequest request, CancellationToken cancellationToken)
     {
-        var result = await _authService.AuthenticateWithGoogleAsync(request, cancellationToken);
+        var result = await authService.AuthenticateWithGoogleAsync(request, cancellationToken);
 
         if (result.IsSuccess && result.Data != null)
         {
@@ -86,7 +76,7 @@ public class AuthController : ControllerBase
             }
 
             // Get user directly from repository to access ID
-            var user = await _userService.GetUserEntityByEmailAsync(userEmail, cancellationToken);
+            var user = await userService.GetUserEntityByEmailAsync(userEmail, cancellationToken);
             
             if (user == null)
             {
@@ -105,7 +95,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating token");
+            logger.LogError(ex, "Error validating token");
             return Unauthorized(new { error = "Invalid token" });
         }
     }

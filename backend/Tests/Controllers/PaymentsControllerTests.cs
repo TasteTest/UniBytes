@@ -1,9 +1,9 @@
 using backend.Common;
 using backend.Common.Enums;
 using backend.Controllers;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.Payment.Request;
+using backend.DTOs.Payment.Response;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +18,6 @@ public class PaymentsControllerTests
 {
     private readonly Mock<IPaymentService> _mockPaymentService;
     private readonly Mock<IStripeService> _mockStripeService;
-    private readonly Mock<ILogger<PaymentsController>> _mockLogger;
     private readonly PaymentsController _controller;
     private readonly DefaultHttpContext _httpContext;
 
@@ -26,9 +25,9 @@ public class PaymentsControllerTests
     {
         _mockPaymentService = new Mock<IPaymentService>();
         _mockStripeService = new Mock<IStripeService>();
-        _mockLogger = new Mock<ILogger<PaymentsController>>();
+        var mockLogger = new Mock<ILogger<PaymentsController>>();
         _httpContext = new DefaultHttpContext();
-        _controller = new PaymentsController(_mockPaymentService.Object, _mockStripeService.Object, _mockLogger.Object)
+        _controller = new PaymentsController(_mockPaymentService.Object, _mockStripeService.Object, mockLogger.Object)
         {
             ControllerContext = new ControllerContext
             {

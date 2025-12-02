@@ -1,6 +1,6 @@
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.UserAnalytics.Request;
+using backend.DTOs.UserAnalytics.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -11,16 +11,12 @@ namespace backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class UserAnalyticsController : ControllerBase
+public class UserAnalyticsController(
+    IUserAnalyticsService userAnalyticsService,
+    ILogger<UserAnalyticsController> logger)
+    : ControllerBase
 {
-    private readonly IUserAnalyticsService _userAnalyticsService;
-    private readonly ILogger<UserAnalyticsController> _logger;
-
-    public UserAnalyticsController(IUserAnalyticsService userAnalyticsService, ILogger<UserAnalyticsController> logger)
-    {
-        _userAnalyticsService = userAnalyticsService;
-        _logger = logger;
-    }
+    private readonly ILogger<UserAnalyticsController> _logger = logger;
 
     /// <summary>
     /// Get user analytics by ID
@@ -30,7 +26,7 @@ public class UserAnalyticsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _userAnalyticsService.GetByIdAsync(id, cancellationToken);
+        var result = await userAnalyticsService.GetByIdAsync(id, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -41,7 +37,7 @@ public class UserAnalyticsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserAnalyticsResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByUserId(Guid userId, CancellationToken cancellationToken)
     {
-        var result = await _userAnalyticsService.GetByUserIdAsync(userId, cancellationToken);
+        var result = await userAnalyticsService.GetByUserIdAsync(userId, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -52,7 +48,7 @@ public class UserAnalyticsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserAnalyticsResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBySessionId(string sessionId, CancellationToken cancellationToken)
     {
-        var result = await _userAnalyticsService.GetBySessionIdAsync(sessionId, cancellationToken);
+        var result = await userAnalyticsService.GetBySessionIdAsync(sessionId, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -63,7 +59,7 @@ public class UserAnalyticsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserAnalyticsResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByEventType(string eventType, CancellationToken cancellationToken)
     {
-        var result = await _userAnalyticsService.GetByEventTypeAsync(eventType, cancellationToken);
+        var result = await userAnalyticsService.GetByEventTypeAsync(eventType, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -74,7 +70,7 @@ public class UserAnalyticsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserAnalyticsResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByDateRange([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, CancellationToken cancellationToken)
     {
-        var result = await _userAnalyticsService.GetByDateRangeAsync(startDate, endDate, cancellationToken);
+        var result = await userAnalyticsService.GetByDateRangeAsync(startDate, endDate, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -91,7 +87,7 @@ public class UserAnalyticsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _userAnalyticsService.CreateAsync(createRequest, cancellationToken);
+        var result = await userAnalyticsService.CreateAsync(createRequest, cancellationToken);
         if (!result.IsSuccess)
         {
             return BadRequest(result.Error);
@@ -108,7 +104,7 @@ public class UserAnalyticsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _userAnalyticsService.DeleteAsync(id, cancellationToken);
+        var result = await userAnalyticsService.DeleteAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 }

@@ -1,9 +1,9 @@
 using backend.Common;
 using backend.Common.Enums;
 using backend.Controllers;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.OAuthProvider.Request;
+using backend.DTOs.OAuthProvider.Response;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -15,14 +15,13 @@ namespace Backend.Tests.Controllers;
 public class OAuthProvidersControllerTests
 {
     private readonly Mock<IOAuthProviderService> _mockOAuthProviderService;
-    private readonly Mock<ILogger<OAuthProvidersController>> _mockLogger;
     private readonly OAuthProvidersController _controller;
 
     public OAuthProvidersControllerTests()
     {
         _mockOAuthProviderService = new Mock<IOAuthProviderService>();
-        _mockLogger = new Mock<ILogger<OAuthProvidersController>>();
-        _controller = new OAuthProvidersController(_mockOAuthProviderService.Object, _mockLogger.Object);
+        var mockLogger = new Mock<ILogger<OAuthProvidersController>>();
+        _controller = new OAuthProvidersController(_mockOAuthProviderService.Object, mockLogger.Object);
     }
 
     [Fact]

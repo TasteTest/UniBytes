@@ -2,11 +2,11 @@ using System.Text.Json;
 using AutoMapper;
 using backend.Common;
 using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services.Interfaces;
+using backend.DTOs.Payment.Request;
+using backend.DTOs.Payment.Response;
 using Stripe;
 using Stripe.Checkout;
 
@@ -22,7 +22,6 @@ public class StripeService : IStripeService
     private readonly IUserService _userService;
     private readonly IMapper _mapper;
     private readonly ILogger<StripeService> _logger;
-    private readonly IConfiguration _configuration;
     private readonly string _webhookSecret;
 
     public StripeService(
@@ -38,16 +37,15 @@ public class StripeService : IStripeService
         _userService = userService;
         _mapper = mapper;
         _logger = logger;
-        _configuration = configuration;
-        
+
         // Read Stripe keys from environment variables first, then configuration
         _webhookSecret = Environment.GetEnvironmentVariable("Stripe__WebhookSecret")
-            ?? _configuration["Stripe:WebhookSecret"]
-            ?? string.Empty;
+                         ?? configuration["Stripe:WebhookSecret"]
+                         ?? string.Empty;
         
         // Set Stripe API key (check environment variables first, then configuration)
         var stripeSecretKey = Environment.GetEnvironmentVariable("Stripe__SecretKey")
-            ?? _configuration["Stripe:SecretKey"];
+            ?? configuration["Stripe:SecretKey"];
         
         if (string.IsNullOrEmpty(stripeSecretKey))
         {

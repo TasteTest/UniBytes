@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -41,8 +41,9 @@ public class LoyaltyRedemptionRepositoryTests : IDisposable
         var result = await _repository.GetByAccountIdAsync(accountId1);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(r => r.LoyaltyAccountId == accountId1).Should().BeTrue();
+        var loyaltyRedemptions = result.ToList();
+        loyaltyRedemptions.Should().HaveCount(2);
+        loyaltyRedemptions.All(r => r.LoyaltyAccountId == accountId1).Should().BeTrue();
     }
 
     [Fact]
@@ -61,8 +62,9 @@ public class LoyaltyRedemptionRepositoryTests : IDisposable
         var result = await _repository.GetByUserIdAsync(userId);
 
         // Assert
-        result.Should().HaveCount(1);
-        result.First().LoyaltyAccount.UserId.Should().Be(userId);
+        var loyaltyRedemptions = result.ToList();
+        loyaltyRedemptions.Should().HaveCount(1);
+        loyaltyRedemptions.First().LoyaltyAccount.UserId.Should().Be(userId);
     }
 
     [Fact]
@@ -82,8 +84,9 @@ public class LoyaltyRedemptionRepositoryTests : IDisposable
         var result = await _repository.GetByRewardTypeAsync("Discount");
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(r => r.RewardType == "Discount").Should().BeTrue();
+        var loyaltyRedemptions = result.ToList();
+        loyaltyRedemptions.Should().HaveCount(2);
+        loyaltyRedemptions.All(r => r.RewardType == "Discount").Should().BeTrue();
     }
 
     [Fact]

@@ -1,8 +1,8 @@
-using backend.Modelss;
+using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace backend.Mappings;
+namespace backend.Data.Configurations;
 
 public class MenuItemMapping : IEntityTypeConfiguration<MenuItem>
 {

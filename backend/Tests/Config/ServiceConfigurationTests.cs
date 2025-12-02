@@ -4,7 +4,6 @@ using backend.Services.Interfaces;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 using Xunit;
 
 namespace Backend.Tests.Config;

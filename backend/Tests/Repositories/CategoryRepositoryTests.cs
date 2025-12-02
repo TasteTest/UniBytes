@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -80,9 +80,10 @@ public class CategoryRepositoryTests : IDisposable
         var result = await _repository.GetAllActiveAsync();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(c => c.IsActive).Should().BeTrue();
-        result.First().DisplayOrder.Should().BeLessThan(result.Last().DisplayOrder);
+        var menuCategories = result.ToList();
+        menuCategories.Should().HaveCount(2);
+        menuCategories.All(c => c.IsActive).Should().BeTrue();
+        menuCategories.First().DisplayOrder.Should().BeLessThan(menuCategories.Last().DisplayOrder);
     }
 
     [Fact]

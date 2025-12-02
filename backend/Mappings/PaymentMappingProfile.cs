@@ -1,7 +1,7 @@
 using AutoMapper;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
+using backend.DTOs.Payment.Request;
+using backend.DTOs.Payment.Response;
 
 namespace backend.Mappings;
 

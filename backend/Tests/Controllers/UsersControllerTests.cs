@@ -1,8 +1,8 @@
 using backend.Common;
 using backend.Controllers;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.User.Request;
+using backend.DTOs.User.Response;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -14,14 +14,13 @@ namespace Backend.Tests.Controllers;
 public class UsersControllerTests
 {
     private readonly Mock<IUserService> _mockUserService;
-    private readonly Mock<ILogger<UsersController>> _mockLogger;
     private readonly UsersController _controller;
 
     public UsersControllerTests()
     {
         _mockUserService = new Mock<IUserService>();
-        _mockLogger = new Mock<ILogger<UsersController>>();
-        _controller = new UsersController(_mockUserService.Object, _mockLogger.Object);
+        var mockLogger = new Mock<ILogger<UsersController>>();
+        _controller = new UsersController(_mockUserService.Object, mockLogger.Object);
     }
 
     #region GetAll Tests

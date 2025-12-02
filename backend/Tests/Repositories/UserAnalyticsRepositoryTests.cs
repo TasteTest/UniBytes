@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -41,9 +41,10 @@ public class UserAnalyticsRepositoryTests : IDisposable
         var result = await _repository.GetByUserIdAsync(userId);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(a => a.UserId == userId).Should().BeTrue();
-        result.First().CreatedAt.Should().BeAfter(result.Last().CreatedAt); // Ordered by descending
+        var userAnalyticsEnumerable = result.ToList();
+        userAnalyticsEnumerable.Should().HaveCount(2);
+        userAnalyticsEnumerable.All(a => a.UserId == userId).Should().BeTrue();
+        userAnalyticsEnumerable.First().CreatedAt.Should().BeAfter(userAnalyticsEnumerable.Last().CreatedAt); // Ordered by descending
     }
 
     [Fact]
@@ -64,8 +65,9 @@ public class UserAnalyticsRepositoryTests : IDisposable
         var result = await _repository.GetBySessionIdAsync(sessionId);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(a => a.SessionId == sessionId).Should().BeTrue();
+        var userAnalyticsEnumerable = result.ToList();
+        userAnalyticsEnumerable.Should().HaveCount(2);
+        userAnalyticsEnumerable.All(a => a.SessionId == sessionId).Should().BeTrue();
     }
 
     [Fact]
@@ -85,8 +87,9 @@ public class UserAnalyticsRepositoryTests : IDisposable
         var result = await _repository.GetByEventTypeAsync("page_view");
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(a => a.EventType == "page_view").Should().BeTrue();
+        var userAnalyticsEnumerable = result.ToList();
+        userAnalyticsEnumerable.Should().HaveCount(2);
+        userAnalyticsEnumerable.All(a => a.EventType == "page_view").Should().BeTrue();
     }
 
     [Fact]
@@ -108,8 +111,9 @@ public class UserAnalyticsRepositoryTests : IDisposable
         var result = await _repository.GetByDateRangeAsync(startDate, endDate);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(a => a.CreatedAt >= startDate && a.CreatedAt <= endDate).Should().BeTrue();
+        var userAnalyticsEnumerable = result.ToList();
+        userAnalyticsEnumerable.Should().HaveCount(2);
+        userAnalyticsEnumerable.All(a => a.CreatedAt >= startDate && a.CreatedAt <= endDate).Should().BeTrue();
     }
 }
 

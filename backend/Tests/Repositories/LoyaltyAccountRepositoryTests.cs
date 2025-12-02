@@ -1,6 +1,6 @@
 using backend.Common.Enums;
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -148,8 +148,9 @@ public class LoyaltyAccountRepositoryTests : IDisposable
         var result = await _repository.GetActiveAccountsAsync();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(a => a.IsActive).Should().BeTrue();
+        var loyaltyAccounts = result.ToList();
+        loyaltyAccounts.Should().HaveCount(2);
+        loyaltyAccounts.All(a => a.IsActive).Should().BeTrue();
     }
 
     [Fact]
@@ -169,8 +170,9 @@ public class LoyaltyAccountRepositoryTests : IDisposable
         var result = await _repository.GetByTierAsync((int)LoyaltyTier.Bronze);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(a => (int)a.Tier == (int)LoyaltyTier.Bronze && a.IsActive).Should().BeTrue();
+        var loyaltyAccounts = result.ToList();
+        loyaltyAccounts.Should().HaveCount(2);
+        loyaltyAccounts.All(a => (int)a.Tier == (int)LoyaltyTier.Bronze && a.IsActive).Should().BeTrue();
     }
 
     [Fact]
@@ -209,7 +211,7 @@ public class LoyaltyAccountRepositoryTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.AddPointsAsync(userId, 50, "Purchase", null);
+        var result = await _repository.AddPointsAsync(userId, 50, "Purchase");
         await _context.SaveChangesAsync();
 
         // Assert
@@ -225,7 +227,7 @@ public class LoyaltyAccountRepositoryTests : IDisposable
     public async Task AddPointsAsync_AccountNotExists_ReturnsFalse()
     {
         // Act
-        var result = await _repository.AddPointsAsync(Guid.NewGuid(), 50, "Purchase", null);
+        var result = await _repository.AddPointsAsync(Guid.NewGuid(), 50, "Purchase");
 
         // Assert
         result.Should().BeFalse();
@@ -241,7 +243,7 @@ public class LoyaltyAccountRepositoryTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeductPointsAsync(userId, 50, "Redemption", null);
+        var result = await _repository.DeductPointsAsync(userId, 50, "Redemption");
         await _context.SaveChangesAsync();
 
         // Assert
@@ -254,7 +256,7 @@ public class LoyaltyAccountRepositoryTests : IDisposable
     public async Task DeductPointsAsync_AccountNotExists_ReturnsFalse()
     {
         // Act
-        var result = await _repository.DeductPointsAsync(Guid.NewGuid(), 50, "Redemption", null);
+        var result = await _repository.DeductPointsAsync(Guid.NewGuid(), 50, "Redemption");
 
         // Assert
         result.Should().BeFalse();
@@ -270,7 +272,7 @@ public class LoyaltyAccountRepositoryTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeductPointsAsync(userId, 50, "Redemption", null);
+        var result = await _repository.DeductPointsAsync(userId, 50, "Redemption");
 
         // Assert
         result.Should().BeFalse();

@@ -1,7 +1,7 @@
 using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.OAuthProvider.Request;
+using backend.DTOs.OAuthProvider.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -12,16 +12,12 @@ namespace backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class OAuthProvidersController : ControllerBase
+public class OAuthProvidersController(
+    IOAuthProviderService oAuthProviderService,
+    ILogger<OAuthProvidersController> logger)
+    : ControllerBase
 {
-    private readonly IOAuthProviderService _oAuthProviderService;
-    private readonly ILogger<OAuthProvidersController> _logger;
-
-    public OAuthProvidersController(IOAuthProviderService oAuthProviderService, ILogger<OAuthProvidersController> logger)
-    {
-        _oAuthProviderService = oAuthProviderService;
-        _logger = logger;
-    }
+    private readonly ILogger<OAuthProvidersController> _logger = logger;
 
     /// <summary>
     /// Get OAuth provider by ID
@@ -31,7 +27,7 @@ public class OAuthProvidersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _oAuthProviderService.GetByIdAsync(id, cancellationToken);
+        var result = await oAuthProviderService.GetByIdAsync(id, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -42,7 +38,7 @@ public class OAuthProvidersController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<OAuthProviderResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByUserId(Guid userId, CancellationToken cancellationToken)
     {
-        var result = await _oAuthProviderService.GetByUserIdAsync(userId, cancellationToken);
+        var result = await oAuthProviderService.GetByUserIdAsync(userId, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
     }
 
@@ -54,7 +50,7 @@ public class OAuthProvidersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByProviderAndProviderId(OAuthProviderType provider, string providerId, CancellationToken cancellationToken)
     {
-        var result = await _oAuthProviderService.GetByProviderAndProviderIdAsync(provider, providerId, cancellationToken);
+        var result = await oAuthProviderService.GetByProviderAndProviderIdAsync(provider, providerId, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -71,7 +67,7 @@ public class OAuthProvidersController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _oAuthProviderService.CreateAsync(createRequest, cancellationToken);
+        var result = await oAuthProviderService.CreateAsync(createRequest, cancellationToken);
         if (!result.IsSuccess)
         {
             return BadRequest(result.Error);
@@ -94,7 +90,7 @@ public class OAuthProvidersController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _oAuthProviderService.UpdateAsync(id, updateRequest, cancellationToken);
+        var result = await oAuthProviderService.UpdateAsync(id, updateRequest, cancellationToken);
         return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
     }
 
@@ -106,7 +102,7 @@ public class OAuthProvidersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _oAuthProviderService.DeleteAsync(id, cancellationToken);
+        var result = await oAuthProviderService.DeleteAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 }

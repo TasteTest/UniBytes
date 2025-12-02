@@ -1,6 +1,6 @@
 using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
+using backend.DTOs.UserAnalytics.Request;
+using backend.DTOs.UserAnalytics.Response;
 
 namespace backend.Services.Interfaces;
 

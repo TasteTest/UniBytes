@@ -1,5 +1,5 @@
-using backend.DTOs.Request;
 using backend.Services.Interfaces;
+using backend.DTOs.Payment.Request;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -9,21 +9,13 @@ namespace backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/payments")]
-public class PaymentsController : ControllerBase
+public class PaymentsController(
+    IPaymentService paymentService,
+    IStripeService stripeService,
+    ILogger<PaymentsController> logger)
+    : ControllerBase
 {
-    private readonly IPaymentService _paymentService;
-    private readonly IStripeService _stripeService;
-    private readonly ILogger<PaymentsController> _logger;
-
-    public PaymentsController(
-        IPaymentService paymentService,
-        IStripeService stripeService,
-        ILogger<PaymentsController> logger)
-    {
-        _paymentService = paymentService;
-        _stripeService = stripeService;
-        _logger = logger;
-    }
+    private readonly ILogger<PaymentsController> _logger = logger;
 
     /// <summary>
     /// Get payment by ID
@@ -33,7 +25,7 @@ public class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPaymentById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _paymentService.GetPaymentByIdAsync(id, cancellationToken);
+        var result = await paymentService.GetPaymentByIdAsync(id, cancellationToken);
         
         if (result.IsSuccess)
         {
@@ -51,7 +43,7 @@ public class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPaymentByOrderId(Guid orderId, CancellationToken cancellationToken)
     {
-        var result = await _paymentService.GetPaymentByOrderIdAsync(orderId, cancellationToken);
+        var result = await paymentService.GetPaymentByOrderIdAsync(orderId, cancellationToken);
         
         if (result.IsSuccess)
         {
@@ -68,7 +60,7 @@ public class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPaymentsByUserId(Guid userId, CancellationToken cancellationToken)
     {
-        var result = await _paymentService.GetPaymentsByUserIdAsync(userId, cancellationToken);
+        var result = await paymentService.GetPaymentsByUserIdAsync(userId, cancellationToken);
         
         if (result.IsSuccess)
         {
@@ -88,7 +80,7 @@ public class PaymentsController : ControllerBase
         [FromBody] CreateCheckoutSessionRequest request, 
         CancellationToken cancellationToken)
     {
-        var result = await _stripeService.CreateCheckoutSessionAsync(request, cancellationToken);
+        var result = await stripeService.CreateCheckoutSessionAsync(request, cancellationToken);
         
         if (result.IsSuccess)
         {
@@ -106,7 +98,7 @@ public class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyPayment(string sessionId, CancellationToken cancellationToken)
     {
-        var result = await _stripeService.VerifyPaymentAsync(sessionId, cancellationToken);
+        var result = await stripeService.VerifyPaymentAsync(sessionId, cancellationToken);
         
         if (result.IsSuccess)
         {
@@ -132,7 +124,7 @@ public class PaymentsController : ControllerBase
             return BadRequest(new { error = "Missing Stripe signature" });
         }
 
-        var result = await _stripeService.HandleWebhookEventAsync(json, stripeSignature, cancellationToken);
+        var result = await stripeService.HandleWebhookEventAsync(json, stripeSignature, cancellationToken);
         
         if (result.IsSuccess)
         {

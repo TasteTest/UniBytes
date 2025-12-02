@@ -1,10 +1,9 @@
 using AutoMapper;
-using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
+using backend.DTOs.UserAnalytics.Request;
+using backend.DTOs.UserAnalytics.Response;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -16,19 +15,18 @@ public class UserAnalyticsServiceTests
 {
     private readonly Mock<IUserAnalyticsRepository> _mockUserAnalyticsRepository;
     private readonly Mock<IMapper> _mockMapper;
-    private readonly Mock<ILogger<UserAnalyticsService>> _mockLogger;
     private readonly UserAnalyticsService _userAnalyticsService;
 
     public UserAnalyticsServiceTests()
     {
         _mockUserAnalyticsRepository = new Mock<IUserAnalyticsRepository>();
         _mockMapper = new Mock<IMapper>();
-        _mockLogger = new Mock<ILogger<UserAnalyticsService>>();
+        var mockLogger = new Mock<ILogger<UserAnalyticsService>>();
 
         _userAnalyticsService = new UserAnalyticsService(
             _mockUserAnalyticsRepository.Object,
             _mockMapper.Object,
-            _mockLogger.Object);
+            mockLogger.Object);
     }
 
     [Fact]
@@ -225,7 +223,16 @@ public class UserAnalyticsServiceTests
 
         var analyticsResponses = new List<UserAnalyticsResponse>
         {
-            new UserAnalyticsResponse { }
+            new UserAnalyticsResponse
+            {
+                SessionId = null,
+                EventType = null,
+                EventData = null,
+                IpAddress = null,
+                UserAgent = null,
+                ReferrerUrl = null,
+                CreatedAt = default
+            }
         };
 
         _mockUserAnalyticsRepository.Setup(x => x.GetByDateRangeAsync(

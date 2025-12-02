@@ -1,7 +1,7 @@
 using backend.Common;
 using backend.Common.Enums;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
+using backend.DTOs.OAuthProvider.Request;
+using backend.DTOs.OAuthProvider.Response;
 
 namespace backend.Services.Interfaces;
 

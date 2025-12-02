@@ -1,6 +1,6 @@
 using backend.Common;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
+using backend.DTOs.Payment.Request;
+using backend.DTOs.Payment.Response;
 
 namespace backend.Services.Interfaces;
 

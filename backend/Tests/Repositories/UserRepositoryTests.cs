@@ -1,6 +1,6 @@
 using backend.Common.Enums;
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -98,8 +98,9 @@ public class UserRepositoryTests : IDisposable
         var result = await _repository.GetActiveUsersAsync();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(u => u.IsActive).Should().BeTrue();
+        var enumerable = result.ToList();
+        enumerable.Should().HaveCount(2);
+        enumerable.All(u => u.IsActive).Should().BeTrue();
     }
 
     [Fact]
@@ -120,8 +121,9 @@ public class UserRepositoryTests : IDisposable
         var result = await _repository.GetAdminUsersAsync();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(u => u.IsAdmin && u.IsActive).Should().BeTrue();
+        var enumerable = result.ToList();
+        enumerable.Should().HaveCount(2);
+        enumerable.All(u => u is { IsAdmin: true, IsActive: true }).Should().BeTrue();
     }
 
     [Fact]

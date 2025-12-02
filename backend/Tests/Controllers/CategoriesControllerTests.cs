@@ -1,7 +1,7 @@
 using backend.Controllers;
-using backend.DTOs;
-using backend.Modelss;
-using backend.Repositories;
+using backend.Models;
+using backend.Repositories.Interfaces;
+using backend.DTOs.Menu.Request;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;

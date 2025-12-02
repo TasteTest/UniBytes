@@ -1,7 +1,6 @@
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
-using backend.Repositories.Interfaces;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -82,9 +81,10 @@ public class RepositoryTests : IDisposable
         var result = await _repository.GetAllAsync();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(u => u.Email == "user1@example.com");
-        result.Should().Contain(u => u.Email == "user2@example.com");
+        var enumerable = result.ToList();
+        enumerable.Should().HaveCount(2);
+        enumerable.Should().Contain(u => u.Email == "user1@example.com");
+        enumerable.Should().Contain(u => u.Email == "user2@example.com");
     }
 
     [Fact]
@@ -117,8 +117,9 @@ public class RepositoryTests : IDisposable
         var result = await _repository.FindAsync(u => u.IsActive);
 
         // Assert
-        result.Should().HaveCount(1);
-        result.First().Email.Should().Be("active@example.com");
+        var enumerable = result.ToList();
+        enumerable.Should().HaveCount(1);
+        enumerable.First().Email.Should().Be("active@example.com");
     }
 
     [Fact]

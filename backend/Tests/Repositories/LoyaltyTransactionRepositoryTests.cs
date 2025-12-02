@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
 using backend.Repositories;
 using FluentAssertions;
 using Xunit;
@@ -41,9 +41,10 @@ public class LoyaltyTransactionRepositoryTests : IDisposable
         var result = await _repository.GetByAccountIdAsync(accountId1);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(t => t.LoyaltyAccountId == accountId1).Should().BeTrue();
-        result.First().CreatedAt.Should().BeAfter(result.Last().CreatedAt); // Ordered by descending
+        var loyaltyTransactions = result.ToList();
+        loyaltyTransactions.Should().HaveCount(2);
+        loyaltyTransactions.All(t => t.LoyaltyAccountId == accountId1).Should().BeTrue();
+        loyaltyTransactions.First().CreatedAt.Should().BeAfter(loyaltyTransactions.Last().CreatedAt); // Ordered by descending
     }
 
     [Fact]
@@ -62,8 +63,9 @@ public class LoyaltyTransactionRepositoryTests : IDisposable
         var result = await _repository.GetByUserIdAsync(userId);
 
         // Assert
-        result.Should().HaveCount(1);
-        result.First().LoyaltyAccount.UserId.Should().Be(userId);
+        var loyaltyTransactions = result.ToList();
+        loyaltyTransactions.Should().HaveCount(1);
+        loyaltyTransactions.First().LoyaltyAccount.UserId.Should().Be(userId);
     }
 
     [Fact]
@@ -84,8 +86,9 @@ public class LoyaltyTransactionRepositoryTests : IDisposable
         var result = await _repository.GetByReferenceIdAsync(referenceId);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(t => t.ReferenceId == referenceId).Should().BeTrue();
+        var loyaltyTransactions = result.ToList();
+        loyaltyTransactions.Should().HaveCount(2);
+        loyaltyTransactions.All(t => t.ReferenceId == referenceId).Should().BeTrue();
     }
 
     [Fact]
@@ -111,8 +114,9 @@ public class LoyaltyTransactionRepositoryTests : IDisposable
         var result = await _repository.GetRecentTransactionsAsync(accountId, 5);
 
         // Assert
-        result.Should().HaveCount(5);
-        result.First().CreatedAt.Should().BeAfter(result.Last().CreatedAt); // Most recent first
+        var loyaltyTransactions = result.ToList();
+        loyaltyTransactions.Should().HaveCount(5);
+        loyaltyTransactions.First().CreatedAt.Should().BeAfter(loyaltyTransactions.Last().CreatedAt); // Most recent first
     }
 }
 

@@ -1,33 +1,22 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using backend.Data;
-using backend.Modelss;
+using backend.Models;
+using backend.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Repositories;
 
-public class MenuItemRepository : IMenuItemRepository
+public class MenuItemRepository(ApplicationDbContext context) : IMenuItemRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public MenuItemRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<MenuItem?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.MenuItems
+        return await context.MenuItems
             .Include(m => m.Category)
             .FirstOrDefaultAsync(m => m.Id == id, ct);
     }
 
     public async Task<IEnumerable<MenuItem>> GetAllAsync(CancellationToken ct = default)
     {
-        return await _context.MenuItems
+        return await context.MenuItems
             .Include(m => m.Category)
             .Where(m => m.Available)
             .ToListAsync(ct);
@@ -35,7 +24,7 @@ public class MenuItemRepository : IMenuItemRepository
 
     public async Task<IEnumerable<MenuItem>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default)
     {
-        return await _context.MenuItems
+        return await context.MenuItems
             .Include(m => m.Category)
             .Where(m => m.CategoryId == categoryId && m.Available)
             .ToListAsync(ct);
@@ -43,16 +32,16 @@ public class MenuItemRepository : IMenuItemRepository
 
     public async Task<MenuItem> AddAsync(MenuItem item, CancellationToken ct = default)
     {
-        _context.MenuItems.Add(item);
-        await _context.SaveChangesAsync(ct);
+        context.MenuItems.Add(item);
+        await context.SaveChangesAsync(ct);
         return item;
     }
 
     public async Task UpdateAsync(MenuItem item, CancellationToken ct = default)
     {
         item.UpdatedAt = DateTime.UtcNow;
-        _context.MenuItems.Update(item);
-        await _context.SaveChangesAsync(ct);
+        context.MenuItems.Update(item);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
@@ -60,8 +49,8 @@ public class MenuItemRepository : IMenuItemRepository
         var item = await GetByIdAsync(id, ct);
         if (item != null)
         {
-            _context.MenuItems.Remove(item);
-            await _context.SaveChangesAsync(ct);
+            context.MenuItems.Remove(item);
+            await context.SaveChangesAsync(ct);
         }
     }
 }

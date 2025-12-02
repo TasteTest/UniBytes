@@ -1,9 +1,9 @@
 using backend.Common;
 using backend.Common.Enums;
 using backend.Controllers;
-using backend.DTOs.Request;
-using backend.DTOs.Response;
 using backend.Services.Interfaces;
+using backend.DTOs.Loyalty.Request;
+using backend.DTOs.Loyalty.Response;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -15,14 +15,13 @@ namespace Backend.Tests.Controllers;
 public class LoyaltyAccountsControllerTests
 {
     private readonly Mock<ILoyaltyAccountService> _mockLoyaltyAccountService;
-    private readonly Mock<ILogger<LoyaltyAccountsController>> _mockLogger;
     private readonly LoyaltyAccountsController _controller;
 
     public LoyaltyAccountsControllerTests()
     {
         _mockLoyaltyAccountService = new Mock<ILoyaltyAccountService>();
-        _mockLogger = new Mock<ILogger<LoyaltyAccountsController>>();
-        _controller = new LoyaltyAccountsController(_mockLoyaltyAccountService.Object, _mockLogger.Object);
+        var mockLogger = new Mock<ILogger<LoyaltyAccountsController>>();
+        _controller = new LoyaltyAccountsController(_mockLoyaltyAccountService.Object, mockLogger.Object);
     }
 
     [Fact]
