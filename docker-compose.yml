@@ -24,10 +24,22 @@ services:
       retries: 5
 
   # ==================== BACKEND (MONOLITH) ====================
+  # Tests run automatically during Docker build
+  # If any test fails, the backend container will not start
+  # 
+  # IMPORTANT: Docker caches test results. To force tests to run every time:
+  #   1. Use: docker compose build --no-cache backend
+  #   2. Or use: ./build-backend.sh --force
+  #   3. Or set TEST_RUN_ID: TEST_RUN_ID=$(date +%s) docker compose build backend
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        # Change TEST_RUN_ID to force test execution
+        TEST_RUN_ID: ${TEST_RUN_ID:-1}
+        BUILD_DATE: ${BUILD_DATE:-}
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
     container_name: campuseats-backend
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -50,6 +62,12 @@ services:
     networks:
       - campuseats-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 # ==================== VOLUMES ====================
 
