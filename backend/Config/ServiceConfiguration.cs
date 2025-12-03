@@ -27,6 +27,9 @@ public static class ServiceConfiguration
         // Loyalty services
         services.AddScoped<ILoyaltyAccountService, LoyaltyAccountService>();
 
+        // Order services
+        services.AddScoped<IOrderService, OrderService>();
+
         return services;
     }
 }

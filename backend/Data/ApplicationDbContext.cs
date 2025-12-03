@@ -1,6 +1,6 @@
+using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using backend.Models;
 
 namespace backend.Data;
 
@@ -21,6 +21,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     // Menu service entities
     public DbSet<MenuCategory> MenuCategories { get; set; } = null!;
     public DbSet<MenuItem> MenuItems { get; set; } = null!;
+    
+    // Order service entities
+    public DbSet<Order> Orders { get; set; }
 
     // Loyalty service entities
     public DbSet<LoyaltyAccount> LoyaltyAccounts { get; set; } = null!;

@@ -544,3 +544,5 @@ docker-compose.override.yml
 # diagrams/*.png
 # diagrams/*.svg
 # diagrams/*.jpg
+
+appsettings.development.json

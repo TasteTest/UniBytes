@@ -31,6 +31,10 @@ public static class RepositoryConfiguration
         services.AddScoped<ILoyaltyTransactionRepository, LoyaltyTransactionRepository>();
         services.AddScoped<ILoyaltyRedemptionRepository, LoyaltyRedemptionRepository>();
 
+        // Order service repositories
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+
         return services;
     }
 }
