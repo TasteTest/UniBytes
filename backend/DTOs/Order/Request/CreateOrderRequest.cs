@@ -9,5 +9,5 @@ public record CreateOrderRequest(
     Guid UserId,
     List<CreateOrderItemRequest> OrderItems,
     string Currency = "RON",
-    JsonDocument? Metadata = null
+    JsonElement? Metadata = null
 );

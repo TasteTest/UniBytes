@@ -5,40 +5,53 @@
 
 import { Result } from '../types/common.types'
 import { CreateCheckoutSessionRequest, CheckoutSessionResponse, Payment } from '../types/payment.types'
+import {getSession} from "next-auth/react";
 
-const PAYMENT_API_URL = process.env.NEXT_PUBLIC_PAYMENT_API_URL || 'http://localhost:5001/api'
+const PAYMENT_API_URL = process.env.NEXT_PUBLIC_PAYMENT_API_URL || 'http://localhost:5267/api'
 
 export class PaymentService {
-  async createCheckoutSession(request: CreateCheckoutSessionRequest): Promise<Result<CheckoutSessionResponse>> {
-    try {
-      const response = await fetch(`${PAYMENT_API_URL}/payments/checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      })
+    async createCheckoutSession(request: CreateCheckoutSessionRequest): Promise<Result<CheckoutSessionResponse>> {
+        try {
+            const session = await getSession();
+            if (!session?.accessToken) {
+                return { isSuccess: false, error: 'User not authenticated' };
+            }
 
-      if (!response.ok) {
-        const error = await response.json()
-        return {
-          isSuccess: false,
-          error: error.error || 'Failed to create checkout session'
+            console.log(`Connecting to: ${PAYMENT_API_URL}/payments/checkout-session`);
+
+            const response = await fetch(`${PAYMENT_API_URL}/payments/checkout-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.accessToken}`
+                },
+                body: JSON.stringify(request),
+            })
+
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                console.error("Payment API Error:", responseText);
+                try {
+                    const errorJson = JSON.parse(responseText);
+                    return { isSuccess: false, error: errorJson.detail || 'Payment failed' };
+                } catch {
+                    return { isSuccess: false, error: responseText };
+                }
+            }
+
+            const data: CheckoutSessionResponse = JSON.parse(responseText);
+            return {
+                isSuccess: true,
+                data
+            }
+        } catch (error) {
+            return {
+                isSuccess: false,
+                error: error instanceof Error ? error.message : 'Failed to create checkout session'
+            }
         }
-      }
-
-      const data: CheckoutSessionResponse = await response.json()
-      return {
-        isSuccess: true,
-        data
-      }
-    } catch (error) {
-      return {
-        isSuccess: false,
-        error: error instanceof Error ? error.message : 'Failed to create checkout session'
-      }
     }
-  }
 
   async verifyPayment(sessionId: string): Promise<Result<Payment>> {
     try {

@@ -16,10 +16,9 @@ public class Order
     public DateTime? CancelRequestedAt { get; set; }
     public DateTime? CanceledAt { get; set; }
     [Column(TypeName = "jsonb")]
-    public JsonDocument? Metadata { get; set; }
+    public JsonElement? Metadata { get; set; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; set; }
     
-    // Navigation properties
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

@@ -15,6 +15,6 @@ public class OrderResponse
     public required string PaymentStatus { get; set; }
     public required string OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
-    public JsonDocument? Metadata { get; set; }
+    public JsonElement? Metadata { get; set; }
 }
 

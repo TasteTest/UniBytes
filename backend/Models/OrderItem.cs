@@ -12,10 +12,9 @@ public class OrderItem
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; }
     [Column(TypeName = "jsonb")]
-    public JsonDocument? Modifiers { get; set; }
+    public JsonElement? Modifiers { get; set; }
     public decimal TotalPrice { get; set; }
     public DateTime CreatedAt { get; init; }
     
-    // Navigation property
     public virtual Order? Order { get; set; }
 }

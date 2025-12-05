@@ -10,6 +10,6 @@ public record CreateOrderItemRequest(
     string Name,
     decimal UnitPrice,
     int Quantity,
-    JsonDocument? Modifiers = null
+    JsonElement? Modifiers = null
 );
 

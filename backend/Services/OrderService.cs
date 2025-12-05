@@ -159,7 +159,7 @@ public class OrderService(
             var order = await orderRepository.GetByIdAsync(id, cancellationToken);
             if (order == null)
                 return Result<OrderResponse>.Failure("Order not found");
-            if (order.OrderStatus != 'Pending')
+            if (order.OrderStatus != (int)OrderStatus.Pending)
                 return Result<OrderResponse>.Failure("Only pending orders can be cancelled");
             else if (order.OrderStatus == 5)
                 return Result<OrderResponse>.Failure("Order is already cancelled");
@@ -223,7 +223,7 @@ public class OrderService(
         PaymentStatus = ((PaymentStatus)order.PaymentStatus).ToString(),
         OrderStatus = ((OrderStatus)order.OrderStatus).ToString(),
         CreatedAt = order.CreatedAt,
-        Metadata = order.Metadata
+        Metadata = order.Metadata,
     };
 }
 

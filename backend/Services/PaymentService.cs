@@ -5,13 +5,15 @@ using backend.Repositories.Interfaces;
 using backend.Services.Interfaces;
 using backend.DTOs.Payment.Request;
 using backend.DTOs.Payment.Response;
+using Stripe;
+using Stripe.Checkout;
 
 namespace backend.Services;
 
 /// <summary>
 /// Payment service implementation
 /// </summary>
-public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper, ILogger<PaymentService> logger)
+public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper, ILogger<PaymentService> logger, IConfiguration configuration)
     : IPaymentService
 {
     public async Task<Result<PaymentResponse>> GetPaymentByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -66,6 +68,63 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
         {
             logger.LogError(ex, "Error getting payments by user ID {UserId}", userId);
             return Result<IEnumerable<PaymentResponse>>.Failure($"Error retrieving payments: {ex.Message}");
+        }
+    }
+    
+    public async Task<Result<CheckoutSessionResponse>> CreateCheckoutSessionAsync(CreateCheckoutSessionRequest request, string userId)
+    {
+        try
+        {
+            StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
+            
+            var lineItems = new List<SessionLineItemOptions>();
+
+            foreach (var item in request.LineItems)
+            {
+                lineItems.Add(new SessionLineItemOptions
+                {
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        UnitAmount = (long)(item.UnitPrice * 100),
+                        Currency = "ron",
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = item.Name,
+                        },
+                    },
+                    Quantity = item.Quantity,
+                });
+            }
+
+            var domain = "http://localhost:3000";
+            var options = new SessionCreateOptions
+            {
+                PaymentMethodTypes = new List<string> { "card" },
+                LineItems = lineItems,
+                Mode = "payment",
+                SuccessUrl = domain + "/success?session_id={CHECKOUT_SESSION_ID}",
+                CancelUrl = domain + "/checkout",
+                CustomerEmail = request.UserEmail,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "userId", userId },
+                    { "customOrderId", Guid.NewGuid().ToString() }
+                }
+            };
+
+            var service = new SessionService();
+            Session session = await service.CreateAsync(options);
+
+            return Result<CheckoutSessionResponse>.Success(new CheckoutSessionResponse 
+            { 
+                SessionId = session.Id, 
+                SessionUrl = session.Url
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating Stripe session for user {UserId}", userId);
+            return Result<CheckoutSessionResponse>.Failure(ex.Message);
         }
     }
 

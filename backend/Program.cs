@@ -15,6 +15,8 @@ if (!hasExternalPostgresConfig)
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHealthChecks();
+
 // Allow environment variables to override connection strings
 builder.Configuration.AddEnvironmentVariables();
 
@@ -37,7 +39,10 @@ app.UseSwaggerConfiguration(app.Environment);
 
 app.UseHttpsRedirection();
 app.UseCorsConfiguration();
+app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health");
 
 app.MapControllers();
 app.UseHealthCheckConfiguration();

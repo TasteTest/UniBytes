@@ -1,6 +1,7 @@
 ﻿using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Text.Json;
 
 namespace backend.Data.Configurations;
 
@@ -56,7 +57,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasColumnName("canceled_at");
         
         builder.Property(o => o.Metadata)
-            .HasColumnName("metadata")
+			.HasColumnName("metadata")
             .HasColumnType("jsonb");
         
         builder.Property(o => o.CreatedAt)
