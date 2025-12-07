@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace backend.DTOs.Payment.Request;
 
 /// <summary>
@@ -12,6 +14,7 @@ public class CreateCheckoutSessionRequest
     public string SuccessUrl { get; init; } = string.Empty;
     public string CancelUrl { get; init; } = string.Empty;
     public string? IdempotencyKey { get; init; }
+    public JsonElement? Metadata { get; init; }
 }
 
 /// <summary>
@@ -19,10 +22,12 @@ public class CreateCheckoutSessionRequest
 /// </summary>
 public class CheckoutLineItem
 {
+    public Guid? MenuItemId { get; init; }
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
     public decimal UnitPrice { get; init; }
     public int Quantity { get; init; }
     public string? ImageUrl { get; init; }
+    public JsonElement? Modifiers { get; init; }
 }
 

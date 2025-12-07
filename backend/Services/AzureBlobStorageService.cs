@@ -6,22 +6,37 @@ namespace backend.Services;
 
 public class AzureBlobStorageService : IBlobStorageService
 {
-    private readonly BlobContainerClient _containerClient;
+    private readonly BlobContainerClient? _containerClient;
     private readonly ILogger<AzureBlobStorageService> _logger;
+    private readonly bool _isConfigured;
 
     public AzureBlobStorageService(IConfiguration configuration, ILogger<AzureBlobStorageService> logger)
     {
         _logger = logger;
         var connectionString = configuration["AzureStorage:ConnectionString"];
+        
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            _logger.LogWarning("Azure Storage connection string not configured. Image uploads will fail.");
+            _isConfigured = false;
+            return;
+        }
+        
         var containerName = configuration["AzureStorage:ContainerName"] ?? "menu-images";
         
         var blobServiceClient = new BlobServiceClient(connectionString);
         _containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         _containerClient.CreateIfNotExists(PublicAccessType.Blob);
+        _isConfigured = true;
     }
 
     public async Task<Result<string>> UploadImageAsync(Stream imageStream, string fileName, CancellationToken ct = default)
     {
+        if (!_isConfigured || _containerClient == null)
+        {
+            return Result<string>.Failure("Azure Storage is not configured");
+        }
+        
         try
         {
             var blobName = $"{Guid.NewGuid()}_{fileName}";
@@ -40,6 +55,11 @@ public class AzureBlobStorageService : IBlobStorageService
 
     public async Task<Result> DeleteImageAsync(string blobUrl, CancellationToken ct = default)
     {
+        if (!_isConfigured || _containerClient == null)
+        {
+            return Result.Failure("Azure Storage is not configured");
+        }
+        
         try
         {
             var uri = new Uri(blobUrl);

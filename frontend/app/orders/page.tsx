@@ -19,6 +19,17 @@ interface BackendOrderResponse {
     orderStatus: string;    
     createdAt: string;
     metadata?: any;
+    orderItems: BackendOrderItem[];
+}
+
+interface BackendOrderItem {
+    id: string;
+    menuItemId?: string;
+    name: string;
+    unitPrice: number;
+    quantity: number;
+    totalPrice: number;
+    modifiers?: any;
 }
 
 interface Order {
@@ -27,9 +38,15 @@ interface Order {
     createdAt: string;
     total: number;
     currency: string;
-    items: any[];
+    items: OrderItem[];
     pickupLocation?: string;
     pickupTime?: string;
+}
+
+interface OrderItem {
+    name: string;
+    quantity: number;
+    price: number;
 }
 
 const statusConfig: any = {
@@ -81,7 +98,11 @@ export default function OrdersPage() {
                     createdAt: order.createdAt,
                     total: order.totalAmount,
                     currency: order.currency,
-                    items: [],
+                    items: order.orderItems.map(item => ({
+                        name: item.name,
+                        quantity: item.quantity,
+                        price: item.unitPrice
+                    })),
                     pickupLocation: order.metadata?.pickupLocation || "Restaurant",
                     pickupTime: order.metadata?.pickupTime || null
                 }));

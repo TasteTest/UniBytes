@@ -20,6 +20,7 @@ public class StripeService : IStripeService
     private readonly IPaymentRepository _paymentRepository;
     private readonly IIdempotencyKeyRepository _idempotencyKeyRepository;
     private readonly IUserService _userService;
+    private readonly IOrderService _orderService;
     private readonly IMapper _mapper;
     private readonly ILogger<StripeService> _logger;
     private readonly string _webhookSecret;
@@ -28,6 +29,7 @@ public class StripeService : IStripeService
         IPaymentRepository paymentRepository,
         IIdempotencyKeyRepository idempotencyKeyRepository,
         IUserService userService,
+        IOrderService orderService,
         IMapper mapper,
         ILogger<StripeService> logger,
         IConfiguration configuration)
@@ -35,6 +37,7 @@ public class StripeService : IStripeService
         _paymentRepository = paymentRepository;
         _idempotencyKeyRepository = idempotencyKeyRepository;
         _userService = userService;
+        _orderService = orderService;
         _mapper = mapper;
         _logger = logger;
 
@@ -88,10 +91,34 @@ public class StripeService : IStripeService
                 }
             }
 
-            // Create payment record with validated user ID
+            // Create the order first
+            var createOrderRequest = new DTOs.Order.Request.CreateOrderRequest(
+                userId,
+                request.LineItems.Select(li => new DTOs.Order.Request.CreateOrderItemRequest(
+                    li.MenuItemId ?? Guid.Empty,
+                    li.Name,
+                    li.UnitPrice,
+                    li.Quantity,
+                    li.Modifiers
+                )).ToList(),
+                "USD",
+                request.Metadata
+            );
+
+            var orderResult = await _orderService.CreateAsync(createOrderRequest, cancellationToken);
+            if (!orderResult.IsSuccess)
+            {
+                _logger.LogError("Failed to create order: {Error}", orderResult.Error);
+                return Result<CheckoutSessionResponse>.Failure($"Failed to create order: {orderResult.Error}");
+            }
+
+            var createdOrderId = orderResult.Data!.Id;
+            _logger.LogInformation("Created order {OrderId} for user {UserId}", createdOrderId, userId);
+
+            // Create payment record with validated user ID and actual order ID
             var payment = new Payment
             {
-                OrderId = request.OrderId,
+                OrderId = createdOrderId,
                 UserId = userId,
                 Amount = request.LineItems.Sum(li => li.UnitPrice * li.Quantity),
                 Currency = "usd",
@@ -132,7 +159,7 @@ public class StripeService : IStripeService
                 Metadata = new Dictionary<string, string>
                 {
                     { "payment_id", payment.Id.ToString() },
-                    { "order_id", request.OrderId.ToString() },
+                    { "order_id", createdOrderId.ToString() },
                     { "user_id", userId.ToString() },
                     { "user_email", userEntity.Email }
                 }

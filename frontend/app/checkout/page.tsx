@@ -58,11 +58,13 @@ export default function CheckoutPage() {
     try {
       // Prepare line items for Stripe
       const lineItems: CheckoutLineItem[] = items.map((item) => ({
+        menuItemId: item.menuItem.id,
         name: item.menuItem.name,
         description: item.menuItem.description || undefined,
         unitPrice: item.menuItem.price,
         quantity: item.quantity,
         imageUrl: item.menuItem.image || undefined,
+        modifiers: item.modifiers?.length ? item.modifiers : [],
       }))
 
       // Generate a temporary order ID (in production, create order first)
@@ -91,6 +93,10 @@ export default function CheckoutPage() {
         successUrl: `${window.location.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}/checkout`,
         idempotencyKey: `checkout_${Date.now()}_${userEmail}`,
+        metadata: {
+          pickupLocation: pickupLocation,
+          pickupTime: pickupTime === "asap" ? "ASAP (15-20 min)" : "Scheduled"
+        }
       })
 
       if (result.isSuccess && result.data) {

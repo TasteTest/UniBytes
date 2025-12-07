@@ -3,11 +3,13 @@
  */
 
 export interface CheckoutLineItem {
+  menuItemId?: string
   name: string
   description?: string
   unitPrice: number
   quantity: number
   imageUrl?: string
+  modifiers?: any
 }
 
 export interface CreateCheckoutSessionRequest {
@@ -18,6 +20,7 @@ export interface CreateCheckoutSessionRequest {
   successUrl: string
   cancelUrl: string
   idempotencyKey?: string
+  metadata?: any
 }
 
 export interface CheckoutSessionResponse {

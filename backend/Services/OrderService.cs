@@ -224,6 +224,16 @@ public class OrderService(
         OrderStatus = ((OrderStatus)order.OrderStatus).ToString(),
         CreatedAt = order.CreatedAt,
         Metadata = order.Metadata,
+        OrderItems = order.OrderItems.Select(oi => new DTOs.Order.Response.OrderItemResponse
+        {
+            Id = oi.Id,
+            MenuItemId = oi.MenuItemId,
+            Name = oi.Name,
+            UnitPrice = oi.UnitPrice,
+            Quantity = oi.Quantity,
+            TotalPrice = oi.TotalPrice,
+            Modifiers = oi.Modifiers
+        }).ToList()
     };
 }
 
