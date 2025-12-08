@@ -20,6 +20,7 @@ public class StripeServiceTests
     private readonly Mock<IUserService> _mockUserService;
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<ILogger<StripeService>> _mockLogger;
+    private readonly Mock<IOrderService> _mockOrderService;
     private readonly StripeService _stripeService;
 
     public StripeServiceTests()
@@ -29,6 +30,7 @@ public class StripeServiceTests
         _mockUserService = new Mock<IUserService>();
         _mockMapper = new Mock<IMapper>();
         _mockLogger = new Mock<ILogger<StripeService>>();
+        _mockOrderService = new Mock<IOrderService>();
         var mockConfiguration = new Mock<IConfiguration>();
 
         // Setup configuration
@@ -41,6 +43,7 @@ public class StripeServiceTests
             _mockPaymentRepository.Object,
             _mockIdempotencyKeyRepository.Object,
             _mockUserService.Object,
+            _mockOrderService.Object,
             _mockMapper.Object,
             _mockLogger.Object,
             mockConfiguration.Object);
@@ -212,6 +215,7 @@ public class StripeServiceTests
             _mockPaymentRepository.Object,
             _mockIdempotencyKeyRepository.Object,
             _mockUserService.Object,
+            _mockOrderService.Object,
             _mockMapper.Object,
             _mockLogger.Object,
             mockConfig.Object);

@@ -1,134 +1,130 @@
 "use client"
 
-import { useState } from "react"
-import { ChefHat, Clock, CheckCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ChefHat, Clock, CheckCircle, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
-import { formatTime } from "@/lib/utils"
+import { formatTime, formatCurrency } from "@/lib/utils"
+
+interface KitchenOrderItem {
+  id: string
+  menuItemId?: string
+  name: string
+  unitPrice: number
+  quantity: number
+  totalPrice: number
+  modifiers?: any
+}
 
 interface KitchenOrder {
   id: string
-  orderNumber: string
-  items: Array<{ name: string; quantity: number; modifiers?: string[] }>
-  station: "grill" | "salad" | "pizza" | "drinks"
-  status: "pending" | "preparing" | "ready"
-  placedAt: string
-  estimatedTime: number
+  userId: string
+  totalAmount: number
+  currency: string
+  paymentStatus: string
+  orderStatus: string
+  createdAt: string
+  metadata?: any
+  orderItems: KitchenOrderItem[]
 }
 
-const mockOrders: KitchenOrder[] = [
-  {
-    id: "1",
-    orderNumber: "ORD-001",
-    items: [
-      { name: "Grilled Chicken Sandwich", quantity: 1, modifiers: ["No mayo", "Extra lettuce"] },
-      { name: "Caesar Salad", quantity: 1 },
-    ],
-    station: "grill",
-    status: "pending",
-    placedAt: new Date().toISOString(),
-    estimatedTime: 10,
-  },
-  {
-    id: "2",
-    orderNumber: "ORD-002",
-    items: [{ name: "Pepperoni Pizza", quantity: 1, modifiers: ["Extra cheese", "Well done"] }],
-    station: "pizza",
-    status: "preparing",
-    placedAt: new Date(Date.now() - 300000).toISOString(),
-    estimatedTime: 15,
-  },
-  {
-    id: "3",
-    orderNumber: "ORD-003",
-    items: [
-      { name: "Bacon Burger", quantity: 2, modifiers: ["Medium rare"] },
-      { name: "Mushroom Swiss Burger", quantity: 1, modifiers: ["No onions"] },
-    ],
-    station: "grill",
-    status: "preparing",
-    placedAt: new Date(Date.now() - 480000).toISOString(),
-    estimatedTime: 12,
-  },
-  {
-    id: "4",
-    orderNumber: "ORD-004",
-    items: [
-      { name: "Greek Salad", quantity: 1, modifiers: ["Extra feta"] },
-      { name: "Cobb Salad", quantity: 1 },
-    ],
-    station: "salad",
-    status: "pending",
-    placedAt: new Date(Date.now() - 120000).toISOString(),
-    estimatedTime: 6,
-  },
-  {
-    id: "5",
-    orderNumber: "ORD-005",
-    items: [
-      { name: "Margherita Pizza", quantity: 1 },
-      { name: "Veggie Pizza", quantity: 1, modifiers: ["No olives"] },
-    ],
-    station: "pizza",
-    status: "ready",
-    placedAt: new Date(Date.now() - 900000).toISOString(),
-    estimatedTime: 16,
-  },
-  {
-    id: "6",
-    orderNumber: "ORD-006",
-    items: [
-      { name: "Fresh Lemonade", quantity: 2 },
-      { name: "Iced Coffee", quantity: 1, modifiers: ["Oat milk"] },
-      { name: "Green Juice", quantity: 1 },
-    ],
-    station: "drinks",
-    status: "pending",
-    placedAt: new Date(Date.now() - 60000).toISOString(),
-    estimatedTime: 3,
-  },
-  {
-    id: "7",
-    orderNumber: "ORD-007",
-    items: [
-      { name: "Cheeseburger", quantity: 1, modifiers: ["Well done", "Extra pickles"] },
-    ],
-    station: "grill",
-    status: "ready",
-    placedAt: new Date(Date.now() - 720000).toISOString(),
-    estimatedTime: 12,
-  },
-]
+const getKitchenStatus = (orderStatus: string): "pending" | "preparing" | "ready" | "completed" => {
+  const status = (orderStatus || "").toString().toLowerCase()
+  if (status === "pending" || status === "confirmed") return "pending"
+  if (status === "preparing") return "preparing"
+  if (status === "ready") return "ready"
+  if (status === "completed") return "completed"
+  return "pending"
+}
+
+const getBackendStatusCode = (kitchenStatus: string): number => {
+  switch (kitchenStatus) {
+    case "pending":
+      return 0
+    case "preparing":
+      return 2
+    case "ready":
+      return 3
+    case "completed":
+      return 4
+    default:
+      return 0
+  }
+}
+
+const getStation = (items: KitchenOrderItem[]): "grill" | "salad" | "pizza" | "drinks" | "general" => {
+  const names = items.map((i) => (i.name || "").toLowerCase())
+  if (names.some((n) => n.includes("burger") || n.includes("chicken") || n.includes("bacon"))) return "grill"
+  if (names.some((n) => n.includes("salad"))) return "salad"
+  if (names.some((n) => n.includes("pizza"))) return "pizza"
+  if (names.some((n) => n.includes("drink") || n.includes("juice") || n.includes("coffee") || n.includes("lemonade"))) return "drinks"
+  return "general"
+}
 
 export default function KitchenPage() {
-  const [orders, setOrders] = useState(mockOrders)
+  const [orders, setOrders] = useState<KitchenOrder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const updateOrderStatus = (
-    orderId: string,
-    newStatus: "pending" | "preparing" | "ready"
-  ) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    )
-    toast({
-      title: "Order updated",
-      description: `Order status changed to ${newStatus}`,
-      variant: "success",
-    })
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch("http://localhost:5267/api/orders")
+      if (!res.ok) throw new Error("Failed to fetch orders")
+      const data: KitchenOrder[] = await res.json()
+      const active = data.filter((o) => {
+        const s = (o.orderStatus || "").toString().toLowerCase()
+        return s !== "cancelled" && s !== "failed" && s !== "completed"
+      })
+      setOrders(active)
+      setError(null)
+    } catch (err) {
+      console.error("Error fetching orders:", err)
+      setError("Failed to load orders")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchOrders()
+    const id = setInterval(fetchOrders, 10000)
+    return () => clearInterval(id)
+  }, [])
+
+  const updateOrderStatus = async (orderId: string, newStatus: "pending" | "preparing" | "ready" | "completed") => {
+    try {
+      const code = getBackendStatusCode(newStatus)
+      const res = await fetch(`http://localhost:5267/api/orders/${orderId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderStatus: code }),
+      })
+      if (!res.ok) throw new Error("Failed to update")
+
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus.charAt(0).toUpperCase() + newStatus.slice(1) } : o)))
+      toast({ title: "Order updated", description: `Order status changed to ${newStatus}` })
+      fetchOrders()
+    } catch (err) {
+      console.error("Error updating order:", err)
+      toast({ title: "Update failed", description: "Could not update order status", variant: "destructive" })
+    }
   }
 
   const OrderCard = ({ order }: { order: KitchenOrder }) => {
-    const statusColors = {
+    const kitchenStatus = getKitchenStatus(order.orderStatus)
+    const station = getStation(order.orderItems)
+    const estimatedTime = Math.max(5, order.orderItems.length * 5)
+
+    const statusColors: Record<string, string> = {
       pending: "bg-yellow-500",
       preparing: "bg-blue-500",
       ready: "bg-green-500",
+      completed: "bg-gray-500",
     }
 
     return (
@@ -137,67 +133,57 @@ export default function KitchenPage() {
           <div className="flex items-start justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                Order #{order.orderNumber}
-                <Badge className={statusColors[order.status]}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </Badge>
+                Order #{order.id.substring(0, 8).toUpperCase()}
+                <Badge className={statusColors[kitchenStatus]}>{kitchenStatus.charAt(0).toUpperCase() + kitchenStatus.slice(1)}</Badge>
+                <Badge variant="outline">{station.toUpperCase()}</Badge>
               </CardTitle>
-              <CardDescription className="mt-1">
-                Placed at {formatTime(order.placedAt)} • Est. {order.estimatedTime} min
-              </CardDescription>
+              <CardDescription className="mt-1">Placed at {formatTime(order.createdAt)} • Est. {estimatedTime} min</CardDescription>
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-4">
-          {/* Items */}
           <div>
-            {order.items.map((item, index) => (
-              <div key={index} className="mb-2">
+            {order.orderItems.map((item, index) => (
+              <div key={item.id} className="mb-2">
                 <div className="flex items-start gap-2">
-                  <Badge variant="outline" className="mt-0.5">
-                    {item.quantity}x
-                  </Badge>
+                  <Badge variant="outline" className="mt-0.5">{item.quantity}x</Badge>
                   <div className="flex-1">
                     <p className="font-medium">{item.name}</p>
-                    {item.modifiers && item.modifiers.length > 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        {item.modifiers.join(", ")}
-                      </p>
-                    )}
+                    {item.modifiers && <p className="text-sm text-muted-foreground">Custom modifiers</p>}
+                    <p className="text-sm text-muted-foreground">{formatCurrency(item.unitPrice)} each</p>
                   </div>
                 </div>
-                {index < order.items.length - 1 && (
-                  <Separator className="mt-2" />
-                )}
+                {index < order.orderItems.length - 1 && <Separator className="mt-2" />}
               </div>
             ))}
           </div>
 
-          {/* Actions */}
+          <Separator />
+
+          <div className="flex justify-between items-center">
+            <span className="font-semibold">Total</span>
+            <span className="text-xl font-bold text-primary">{formatCurrency(order.totalAmount, order.currency)}</span>
+          </div>
+
           <div className="flex gap-2">
-            {order.status === "pending" && (
-              <Button
-                onClick={() => updateOrderStatus(order.id, "preparing")}
-                className="flex-1"
-              >
-                <ChefHat className="h-4 w-4 mr-2" />
-                Start Preparing
+            {kitchenStatus === "pending" && (
+              <Button onClick={() => updateOrderStatus(order.id, "preparing")} className="flex-1">
+                <ChefHat className="h-4 w-4 mr-2" /> Start Preparing
               </Button>
             )}
-            {order.status === "preparing" && (
-              <Button
-                onClick={() => updateOrderStatus(order.id, "ready")}
-                className="flex-1"
-                variant="default"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark as Ready
+
+            {kitchenStatus === "preparing" && (
+              <Button onClick={() => updateOrderStatus(order.id, "ready")} className="flex-1" variant="default">
+                <CheckCircle className="h-4 w-4 mr-2" /> Mark as Ready
               </Button>
             )}
-            {order.status === "ready" && (
-              <div className="flex-1 text-center py-2 text-green-600 font-semibold">
-                ✓ Ready for Pickup
-              </div>
+
+            {kitchenStatus === "ready" && (
+              <>
+                <div className="flex-1 text-center py-2 text-green-600 font-semibold">✓ Ready for Pickup</div>
+                <Button onClick={() => updateOrderStatus(order.id, "completed")} variant="outline" size="sm">Complete</Button>
+              </>
             )}
           </div>
         </CardContent>
@@ -207,19 +193,36 @@ export default function KitchenPage() {
 
   const filterByStation = (station: string) => {
     if (station === "all") return orders
-    return orders.filter((order) => order.station === station)
+    return orders.filter((o) => getStation(o.orderItems) === station)
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-8 flex justify-center items-center h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container py-8">
+        <div className="text-center py-12">
+          <p className="text-destructive mb-4">{error}</p>
+          <Button onClick={fetchOrders}>Retry</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-          <ChefHat className="h-10 w-10 text-primary" />
-          Kitchen Dashboard
-        </h1>
-        <p className="text-muted-foreground">
-          Manage incoming orders and update status
-        </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">Kitchen Dashboard</h1>
+          <p className="text-muted-foreground">Manage and track active orders</p>
+        </div>
+        <ChefHat className="h-12 w-12 text-primary" />
       </div>
 
       {/* Stats */}
@@ -227,39 +230,34 @@ export default function KitchenPage() {
         <Card className="card-glass border-none">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-yellow-500">
-                {orders.filter((o) => o.status === "pending").length}
-              </p>
+              <p className="text-3xl font-bold text-yellow-500">{orders.filter((o) => getKitchenStatus(o.orderStatus) === "pending").length}</p>
               <p className="text-sm text-muted-foreground mt-1">Pending</p>
             </div>
           </CardContent>
         </Card>
+
         <Card className="card-glass border-none">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-blue-500">
-                {orders.filter((o) => o.status === "preparing").length}
-              </p>
+              <p className="text-3xl font-bold text-blue-500">{orders.filter((o) => getKitchenStatus(o.orderStatus) === "preparing").length}</p>
               <p className="text-sm text-muted-foreground mt-1">Preparing</p>
             </div>
           </CardContent>
         </Card>
+
         <Card className="card-glass border-none">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-green-500">
-                {orders.filter((o) => o.status === "ready").length}
-              </p>
+              <p className="text-3xl font-bold text-green-500">{orders.filter((o) => getKitchenStatus(o.orderStatus) === "ready").length}</p>
               <p className="text-sm text-muted-foreground mt-1">Ready</p>
             </div>
           </CardContent>
         </Card>
+
         <Card className="card-glass border-none">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary">
-                {orders.length}
-              </p>
+              <p className="text-3xl font-bold text-primary">{orders.length}</p>
               <p className="text-sm text-muted-foreground mt-1">Total Active</p>
             </div>
           </CardContent>
@@ -269,19 +267,18 @@ export default function KitchenPage() {
       {/* Orders by Station */}
       <Tabs defaultValue="all">
         <TabsList className="mb-6">
-          <TabsTrigger value="all">All Orders</TabsTrigger>
-          <TabsTrigger value="grill">Grill</TabsTrigger>
-          <TabsTrigger value="salad">Salad</TabsTrigger>
-          <TabsTrigger value="pizza">Pizza</TabsTrigger>
-          <TabsTrigger value="drinks">Drinks</TabsTrigger>
+          <TabsTrigger value="all">All Orders ({orders.length})</TabsTrigger>
+          <TabsTrigger value="grill">Grill ({filterByStation("grill").length})</TabsTrigger>
+          <TabsTrigger value="salad">Salad ({filterByStation("salad").length})</TabsTrigger>
+          <TabsTrigger value="pizza">Pizza ({filterByStation("pizza").length})</TabsTrigger>
+          <TabsTrigger value="drinks">Drinks ({filterByStation("drinks").length})</TabsTrigger>
+          <TabsTrigger value="general">General ({filterByStation("general").length})</TabsTrigger>
         </TabsList>
 
-        {["all", "grill", "salad", "pizza", "drinks"].map((station) => (
+        {["all", "grill", "salad", "pizza", "drinks", "general"].map((station) => (
           <TabsContent key={station} value={station} className="space-y-4">
             {filterByStation(station).length > 0 ? (
-              filterByStation(station).map((order) => (
-                <OrderCard key={order.id} order={order} />
-              ))
+              filterByStation(station).map((order) => <OrderCard key={order.id} order={order} />)
             ) : (
               <Card className="card-glass border-none">
                 <CardContent className="py-12 text-center">
@@ -296,4 +293,3 @@ export default function KitchenPage() {
     </div>
   )
 }
-

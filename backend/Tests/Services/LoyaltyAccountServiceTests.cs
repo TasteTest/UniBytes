@@ -595,6 +595,21 @@ public class LoyaltyAccountServiceTests
         _mockLoyaltyAccountRepository.Setup(x => x.AddPointsAsync(
             userId, request.Points, request.Reason, request.ReferenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        
+        // Ensure the account exists so the service calls AddPointsAsync path
+        var existingAccount = new backend.Models.LoyaltyAccount
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PointsBalance = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true,
+            Tier = backend.Common.Enums.LoyaltyTier.Bronze
+        };
+
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingAccount);
 
         // Act
         var result = await _loyaltyAccountService.AddPointsAsync(request);

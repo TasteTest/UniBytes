@@ -8,6 +8,7 @@ using backend.DTOs.Payment.Request;
 using backend.DTOs.Payment.Response;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
 
@@ -18,6 +19,7 @@ public class PaymentServiceTests
     private readonly Mock<IPaymentRepository> _mockPaymentRepository;
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<ILogger<PaymentService>> _mockLogger;
+    private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly PaymentService _paymentService;
 
     public PaymentServiceTests()
@@ -25,11 +27,16 @@ public class PaymentServiceTests
         _mockPaymentRepository = new Mock<IPaymentRepository>();
         _mockMapper = new Mock<IMapper>();
         _mockLogger = new Mock<ILogger<PaymentService>>();
+        _mockConfiguration = new Mock<IConfiguration>();
+
+        // Provide minimal configuration required by PaymentService
+        _mockConfiguration.Setup(c => c[It.Is<string>(s => s == "Stripe:SecretKey")]).Returns("sk_test_123");
 
         _paymentService = new PaymentService(
             _mockPaymentRepository.Object,
             _mockMapper.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockConfiguration.Object);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ using backend.Repositories.Interfaces;
 using backend.Services.Interfaces;
 using backend.DTOs.Order.Request;
 using backend.DTOs.Order.Response;
+using backend.DTOs.Loyalty.Request;
 
 namespace backend.Services;
 
@@ -13,6 +14,7 @@ namespace backend.Services;
 /// </summary>
 public class OrderService(
     IOrderRepository orderRepository,
+    ILoyaltyAccountService loyaltyAccountService,
     ILogger<OrderService> logger)
     : IOrderService
 {
@@ -137,10 +139,17 @@ public class OrderService(
             if (order == null)
                 return Result<OrderResponse>.Failure("Order not found");
 
+            var oldStatus = order.OrderStatus;
             order.OrderStatus = updateRequest.OrderStatus;
             order.UpdatedAt = DateTime.UtcNow;
 
             await orderRepository.UpdateAsync(order, cancellationToken);
+            
+            // Award loyalty points when order is completed
+            if (updateRequest.OrderStatus == (int)OrderStatus.Completed && oldStatus != (int)OrderStatus.Completed)
+            {
+                await AwardLoyaltyPointsAsync(order, cancellationToken);
+            }
             
             var response = MapToResponse(order);
             return Result<OrderResponse>.Success(response);
@@ -210,6 +219,71 @@ public class OrderService(
         {
             logger.LogError(ex, "Error getting orders by external user ref");
             return Result<IEnumerable<OrderResponse>>.Failure("Failed to get orders by external user reference");
+        }
+    }
+
+    private async Task AwardLoyaltyPointsAsync(Order order, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (order.UserId == Guid.Empty)
+            {
+                logger.LogWarning("Cannot award loyalty points for order {OrderId} - no user ID", order.Id);
+                return;
+            }
+
+            // Calculate points: 1 point per dollar spent (rounded down)
+            var points = (long)Math.Floor(order.TotalAmount);
+            
+            if (points <= 0)
+            {
+                logger.LogInformation("No loyalty points to award for order {OrderId} - amount too low", order.Id);
+                return;
+            }
+
+            // Try to add points - if account doesn't exist, create it first
+            var addPointsRequest = new AddPointsRequest
+            {
+                UserId = order.UserId,
+                Points = points,
+                Reason = $"Order completion: {order.Id}",
+                ReferenceId = order.Id
+            };
+
+            var result = await loyaltyAccountService.AddPointsAsync(addPointsRequest, cancellationToken);
+            
+            // If failed because account doesn't exist, create it and retry
+            if (!result.IsSuccess && result.Error?.Contains("not found") == true)
+            {
+                logger.LogInformation("Creating loyalty account for user {UserId}", order.UserId);
+                var createRequest = new DTOs.Loyalty.Request.CreateLoyaltyAccountRequest
+                {
+                    UserId = order.UserId
+                };
+                
+                var createResult = await loyaltyAccountService.CreateAsync(createRequest, cancellationToken);
+                if (createResult.IsSuccess)
+                {
+                    // Retry adding points
+                    result = await loyaltyAccountService.AddPointsAsync(addPointsRequest, cancellationToken);
+                }
+            }
+            
+            if (result.IsSuccess)
+            {
+                logger.LogInformation("Awarded {Points} loyalty points to user {UserId} for order {OrderId}", 
+                    points, order.UserId, order.Id);
+            }
+            else
+            {
+                logger.LogWarning("Failed to award loyalty points for order {OrderId}: {Error}", 
+                    order.Id, result.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the order status update if loyalty points fail
+            logger.LogError(ex, "Error awarding loyalty points for order {OrderId}", order.Id);
         }
     }
 

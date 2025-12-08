@@ -279,6 +279,13 @@ public class LoyaltyAccountService(
     {
         try
         {
+            // Get account and check tier before adding points
+            var accountBefore = await loyaltyAccountRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+            if (accountBefore == null)
+            {
+                return Result<LoyaltyAccountResponse>.Failure($"Loyalty account not found for user {request.UserId}");
+            }
+
             var success = await loyaltyAccountRepository.AddPointsAsync(
                 request.UserId, 
                 request.Points, 
@@ -298,7 +305,6 @@ public class LoyaltyAccountService(
                 UpdateAccountTier(account);
                 await loyaltyAccountRepository.UpdateAsync(account, cancellationToken);
             }
-
 
             var response = mapper.Map<LoyaltyAccountResponse>(account!);
 

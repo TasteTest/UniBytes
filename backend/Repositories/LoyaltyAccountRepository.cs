@@ -77,6 +77,7 @@ public class LoyaltyAccountRepository(ApplicationDbContext context)
         };
 
         await Context.Set<LoyaltyTransaction>().AddAsync(transaction, cancellationToken);
+        await Context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
@@ -98,6 +99,7 @@ public class LoyaltyAccountRepository(ApplicationDbContext context)
         };
 
         await Context.Set<LoyaltyTransaction>().AddAsync(transaction, cancellationToken);
+        await Context.SaveChangesAsync(cancellationToken);
         return true;
     }
 }

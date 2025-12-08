@@ -48,9 +48,13 @@ public class AzureBlobStorageServiceTests
         mockConfig.Setup(x => x["AzureStorage:ContainerName"])
             .Returns("test-container");
 
-        // Act & Assert
+        // Act & Assert - service should not throw; it will be unconfigured and operations should fail
         var act = () => new AzureBlobStorageService(mockConfig.Object, _mockLogger.Object);
-        act.Should().Throw<Exception>();
+        act.Should().NotThrow();
+
+        var svc = new AzureBlobStorageService(mockConfig.Object, _mockLogger.Object);
+        var uploadResult = svc.UploadImageAsync(new System.IO.MemoryStream(), "file.jpg").GetAwaiter().GetResult();
+        uploadResult.IsSuccess.Should().BeFalse();
     }
 
     [Fact(Skip = "Integration test - requires Azure Storage Emulator running on localhost:10000")]
