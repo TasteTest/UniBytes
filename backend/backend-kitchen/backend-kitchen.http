@@ -1,6 +1,0 @@
-@backend_kitchen_HostAddress = http://localhost:5221
-
-GET {{backend_kitchen_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

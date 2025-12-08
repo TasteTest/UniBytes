@@ -18,4 +18,3 @@ Files in this folder (simplified schemas):
 - `payments_service.sql` — payments and idempotency_keys (webhook-events/stripe customer mapping removed)
 - `loyalty_service.sql` — loyalty accounts, transactions, redemptions
 
-If you want, I can also add migration-ready SQL (separate up/down files) or EF Core model classes and DbContext scaffolding.

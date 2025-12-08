@@ -1,0 +1,86 @@
+using backend.Repositories.Interfaces;
+using backend.Services;
+using backend.DTOs.Menu.Request;
+using Microsoft.AspNetCore.Mvc;
+
+namespace backend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class MenuItemsController(
+    IMenuService menuService,
+    IBlobStorageService blobStorage,
+    IMenuItemRepository menuItemRepo)
+    : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var result = await menuService.GetAllMenuItemsAsync(ct);
+        return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var result = await menuService.GetMenuItemByIdAsync(id, ct);
+        return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
+    }
+
+    [HttpGet("category/{categoryId:guid}")]
+    public async Task<IActionResult> GetByCategory(Guid categoryId, CancellationToken ct)
+    {
+        var result = await menuService.GetMenuItemsByCategoryAsync(categoryId, ct);
+        return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Error);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateMenuItemDto dto, CancellationToken ct)
+    {
+        var result = await menuService.CreateMenuItemAsync(dto, ct);
+        return result.IsSuccess 
+            ? CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data) 
+            : BadRequest(result.Error);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] CreateMenuItemDto dto, CancellationToken ct)
+    {
+        var result = await menuService.UpdateMenuItemAsync(id, dto, ct);
+        return result.IsSuccess ? NoContent() : BadRequest(result.Error);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var result = await menuService.DeleteMenuItemAsync(id, ct);
+        return result.IsSuccess ? NoContent() : BadRequest(result.Error);
+    }
+
+    [HttpPost("{id:guid}/image")]
+    public async Task<IActionResult> UploadImage(Guid id, IFormFile? image, CancellationToken ct)
+    {
+        if (image == null || image.Length == 0)
+            return BadRequest("No image provided");
+
+        var menuItem = await menuItemRepo.GetByIdAsync(id, ct);
+        if (menuItem == null)
+            return NotFound("Menu item not found");
+
+        // Delete old image if exists
+        if (!string.IsNullOrEmpty(menuItem.ImageUrl))
+            await blobStorage.DeleteImageAsync(menuItem.ImageUrl, ct);
+
+        // Upload new image
+        await using var stream = image.OpenReadStream();
+        var uploadResult = await blobStorage.UploadImageAsync(stream, image.FileName, ct);
+        
+        if (!uploadResult.IsSuccess)
+            return BadRequest(uploadResult.Error);
+
+        menuItem.ImageUrl = uploadResult.Data;
+        await menuItemRepo.UpdateAsync(menuItem, ct);
+
+        return Ok(new { imageUrl = uploadResult.Data });
+    }
+}

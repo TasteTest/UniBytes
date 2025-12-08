@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
     available BOOLEAN NOT NULL DEFAULT TRUE,
     visibility INTEGER NOT NULL DEFAULT 0, -- 0=Public,1=Private,2=Unlisted (enum int for EF)
     components JSONB DEFAULT '[]', -- structured data for build-your-own items
+    image_url VARCHAR(1024), -- URL to menu item image
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

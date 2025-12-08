@@ -1,279 +1,78 @@
 version: '3.8'
 
 services:
-  # ==================== DATABASES ====================
-  
-  db-users:
+  # ==================== SINGLE DATABASE ====================
+  db:
     build:
       context: ./db
-      dockerfile: Dockerfile.users
-    container_name: campuseats-db-users
+      dockerfile: Dockerfile
+    container_name: campuseats-db
     environment:
-      POSTGRES_DB: users_db
-      POSTGRES_USER: users_user
-      POSTGRES_PASSWORD: users_pass
+      POSTGRES_DB: restaurant_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
-      - users-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
     networks:
       - campuseats-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U users_user -d users_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d restaurant_db"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  db-kitchen:
+  # ==================== BACKEND (MONOLITH) ====================
+  # Tests run automatically during Docker build
+  # If any test fails, the backend container will not start
+  # 
+  # IMPORTANT: Docker caches test results. To force tests to run every time:
+  #   1. Use: docker compose build --no-cache backend
+  #   2. Or use: ./build-backend.sh --force
+  #   3. Or set TEST_RUN_ID: TEST_RUN_ID=$(date +%s) docker compose build backend
+  backend:
     build:
-      context: ./db
-      dockerfile: Dockerfile.kitchen
-    container_name: campuseats-db-kitchen
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        # Change TEST_RUN_ID to force test execution
+        TEST_RUN_ID: ${TEST_RUN_ID:-1}
+        BUILD_DATE: ${BUILD_DATE:-}
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
+    container_name: campuseats-backend
     environment:
-      POSTGRES_DB: kitchen_db
-      POSTGRES_USER: kitchen_user
-      POSTGRES_PASSWORD: kitchen_pass
+      - ASPNETCORE_ENVIRONMENT=Development
+      # ASP.NET Core inside container will listen on 8080
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
+      # Single DB wiring for ApplicationDbContext
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=restaurant_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      # Stripe keys (override in your shell / deployment env)
+      - Stripe__SecretKey=${Stripe__SecretKey:-sk_test_placeholder}
+      - Stripe__WebhookSecret=${Stripe__WebhookSecret:-whsec_placeholder}
     ports:
-      - "5433:5432"
-    volumes:
-      - kitchen-data:/var/lib/postgresql/data
+      - "5267:8080"
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - campuseats-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kitchen_user -d kitchen_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  db-loyalty:
-    build:
-      context: ./db
-      dockerfile: Dockerfile.loyalty
-    container_name: campuseats-db-loyalty
-    environment:
-      POSTGRES_DB: loyalty_db
-      POSTGRES_USER: loyalty_user
-      POSTGRES_PASSWORD: loyalty_pass
-    ports:
-      - "5434:5432"
-    volumes:
-      - loyalty-data:/var/lib/postgresql/data
-    networks:
-      - campuseats-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U loyalty_user -d loyalty_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  db-menu:
-    build:
-      context: ./db
-      dockerfile: Dockerfile.menu
-    container_name: campuseats-db-menu
-    environment:
-      POSTGRES_DB: menu_db
-      POSTGRES_USER: menu_user
-      POSTGRES_PASSWORD: menu_pass
-    ports:
-      - "5435:5432"
-    volumes:
-      - menu-data:/var/lib/postgresql/data
-    networks:
-      - campuseats-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U menu_user -d menu_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  db-orders:
-    build:
-      context: ./db
-      dockerfile: Dockerfile.orders
-    container_name: campuseats-db-orders
-    environment:
-      POSTGRES_DB: orders_db
-      POSTGRES_USER: orders_user
-      POSTGRES_PASSWORD: orders_pass
-    ports:
-      - "5436:5432"
-    volumes:
-      - orders-data:/var/lib/postgresql/data
-    networks:
-      - campuseats-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U orders_user -d orders_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  db-payments:
-    build:
-      context: ./db
-      dockerfile: Dockerfile.payments
-    container_name: campuseats-db-payments
-    environment:
-      POSTGRES_DB: payments_db
-      POSTGRES_USER: payments_user
-      POSTGRES_PASSWORD: payments_pass
-    ports:
-      - "5437:5432"
-    volumes:
-      - payments-data:/var/lib/postgresql/data
-    networks:
-      - campuseats-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payments_user -d payments_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ==================== BACKEND SERVICES ====================
-  
-  # Commented out - run backends locally during development
-  # backend-user:
-  #   build:
-  #     context: ./backend/backend-user
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-user
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-users;Database=users_db;Username=users_user;Password=users_pass
-  #   ports:
-  #     - "5001:8080"
-  #   depends_on:
-  #     db-users:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-kitchen:
-  #   build:
-  #     context: ./backend/backend-kitchen
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-kitchen
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-kitchen;Database=kitchen_db;Username=kitchen_user;Password=kitchen_pass
-  #   ports:
-  #     - "5002:8080"
-  #   depends_on:
-  #     db-kitchen:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-loyalty:
-  #   build:
-  #     context: ./backend/backend-loyalty
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-loyalty
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-loyalty;Database=loyalty_db;Username=loyalty_user;Password=loyalty_pass
-  #   ports:
-  #     - "5003:8080"
-  #   depends_on:
-  #     db-loyalty:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-menu:
-  #   build:
-  #     context: ./backend/backend-menu
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-menu
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-menu;Database=menu_db;Username=menu_user;Password=menu_pass
-  #   ports:
-  #     - "5004:8080"
-  #   depends_on:
-  #     db-menu:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-order:
-  #   build:
-  #     context: ./backend/backend-order
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-order
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-orders;Database=orders_db;Username=orders_user;Password=orders_pass
-  #   ports:
-  #     - "5005:8080"
-  #   depends_on:
-  #     db-orders:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # backend-payment:
-  #   build:
-  #     context: ./backend/backend-payment
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-backend-payment
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ConnectionStrings__DefaultConnection=Host=db-payments;Database=payments_db;Username=payments_user;Password=payments_pass
-  #   ports:
-  #     - "5006:8080"
-  #   depends_on:
-  #     db-payments:
-  #       condition: service_healthy
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
-
-  # ==================== FRONTEND ====================
-  
-  # Commented out - run frontend locally during development
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: campuseats-frontend
-  #   environment:
-  #     - NODE_ENV=production
-  #     - NEXT_PUBLIC_API_URL=http://localhost:5001
-  #     - NEXTAUTH_URL=http://localhost:3000
-  #     - NEXTAUTH_SECRET=your-secret-key-change-in-production
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - backend-user
-  #     - backend-kitchen
-  #     - backend-loyalty
-  #     - backend-menu
-  #     - backend-order
-  #     - backend-payment
-  #   networks:
-  #     - campuseats-network
-  #   restart: unless-stopped
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 # ==================== VOLUMES ====================
 
 volumes:
-  users-data:
-    driver: local
-  kitchen-data:
-    driver: local
-  loyalty-data:
-    driver: local
-  menu-data:
-    driver: local
-  orders-data:
-    driver: local
-  payments-data:
+  db-data:
     driver: local
 
 # ==================== NETWORKS ====================
