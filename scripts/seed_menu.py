@@ -3,12 +3,49 @@
 Script to seed menu data into the UniBytes backend API
 """
 
+import os
+import random
 import requests
 import json
-from typing import Dict, List
+from typing import Dict, List, Iterator, Optional, Tuple
 
-# API base URL
-BASE_URL = "http://localhost:5267/api"
+# API base URL (required). Provide via BACKEND_URL env var, e.g.
+# export BACKEND_URL="https://your-backend.azurecontainerapps.io/api"
+BACKEND_URL = os.getenv("BACKEND_URL", "").rstrip("/")
+if not BACKEND_URL:
+    raise SystemExit("Please set BACKEND_URL env var pointing to the backend /api base (e.g. https://.../api)")
+
+# Image directory containing menu item images (default: current folder)
+IMAGE_DIR = os.getenv("IMAGE_DIR", os.path.dirname(__file__))
+
+
+def list_image_files(directory: str) -> List[str]:
+    """Return sorted list of image file paths in the directory"""
+    exts = {".png", ".jpg", ".jpeg", ".webp"}
+    files = []
+    for name in sorted(os.listdir(directory)):
+        if os.path.splitext(name.lower())[1] in exts:
+            files.append(os.path.join(directory, name))
+    return files
+
+
+def upload_image(menu_item_id: str, image_path: str):
+    """Upload image for a given menu item"""
+    with open(image_path, "rb") as f:
+        files = {"image": (os.path.basename(image_path), f, "image/png")}
+        try:
+            resp = requests.post(
+                f"{BACKEND_URL}/menuitems/{menu_item_id}/image",
+                files=files,
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                print(f"  ✓ Uploaded image -> {data.get('imageUrl')}")
+            else:
+                print(f"  ✗ Image upload failed ({resp.status_code}) for {image_path}: {resp.text[:200]}")
+        except Exception as e:
+            print(f"  ✗ Error uploading image {image_path}: {e}")
 
 # Menu categories
 CATEGORIES = [
@@ -69,7 +106,7 @@ def create_categories() -> Dict[str, str]:
     
     # First, try to get existing categories
     try:
-        response = requests.get(f"{BASE_URL}/categories")
+        response = requests.get(f"{BACKEND_URL}/categories")
         if response.status_code == 200:
             existing_categories = response.json()
             for cat in existing_categories:
@@ -85,7 +122,7 @@ def create_categories() -> Dict[str, str]:
             
         try:
             response = requests.post(
-                f"{BASE_URL}/categories",
+                f"{BACKEND_URL}/categories",
                 json=category,
                 headers={"Content-Type": "application/json"}
             )
@@ -107,7 +144,10 @@ def create_categories() -> Dict[str, str]:
 def create_menu_items(category_map: Dict[str, str]):
     """Create menu items using the category mapping"""
     print("\nCreating menu items...")
-    
+    images = list_image_files(IMAGE_DIR)
+    if not images:
+        print("⚠ No images found; items will be created without images.")
+
     for category_name, items in MENU_ITEMS.items():
         category_id = category_map.get(category_name)
         
@@ -128,7 +168,7 @@ def create_menu_items(category_map: Dict[str, str]):
             
             try:
                 response = requests.post(
-                    f"{BASE_URL}/menuitems",
+                    f"{BACKEND_URL}/menuitems",
                     json=menu_item,
                     headers={"Content-Type": "application/json"}
                 )
@@ -136,6 +176,12 @@ def create_menu_items(category_map: Dict[str, str]):
                 if response.status_code == 201:
                     created = response.json()
                     print(f"✓ Created menu item: {item['name']} (ID: {created['id']})")
+                    # Try to upload an image if available
+                    if images:
+                        image_path = random.choice(images)
+                        upload_image(created["id"], image_path)
+                    else:
+                        print(f"  ⚠ No image available for {item['name']}")
                 else:
                     print(f"✗ Failed to create menu item {item['name']}: {response.status_code}")
                     print(f"  Response: {response.text[:500]}")  # Limit output
@@ -147,16 +193,16 @@ def main():
     print("=" * 60)
     print("UniBytes Menu Seeding Script")
     print("=" * 60)
-    print(f"Target API: {BASE_URL}")
+    print(f"Target API: {BACKEND_URL}")
     print()
     
     # Check if API is reachable
     try:
-        response = requests.get(f"{BASE_URL}/categories", timeout=5)
+        response = requests.get(f"{BACKEND_URL}/categories", timeout=5)
         print(f"✓ API is reachable (Status: {response.status_code})")
     except Exception as e:
         print(f"✗ Cannot reach API: {str(e)}")
-        print("Please ensure the backend is running on http://localhost:5267")
+        print("Please ensure the backend is reachable and BACKEND_URL is correct.")
         return
     
     print()

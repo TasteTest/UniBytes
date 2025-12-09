@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,26 @@ import { paymentService } from "@/lib/services/PaymentService"
 import type { Payment } from "@/lib/types/payment.types"
 
 export default function CheckoutSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container py-16 max-w-2xl">
+          <Card className="card-glass border-none text-center">
+            <CardContent className="py-16">
+              <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-primary" />
+              <h2 className="text-2xl font-bold mb-2">Loading checkout details...</h2>
+              <p className="text-muted-foreground">Retrieving your payment result.</p>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
+  )
+}
+
+function CheckoutSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session_id")

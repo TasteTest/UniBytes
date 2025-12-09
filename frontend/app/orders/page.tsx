@@ -1,9 +1,10 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { Loader2, Clock, CheckCircle2 } from "lucide-react";
+import { Loader2, Clock, CheckCircle2, LogIn } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -68,8 +69,17 @@ export default function OrdersPage() {
     useEffect(() => {
         if (status === "loading") return;
 
+        if (status === "unauthenticated" || !session?.user) {
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
             try {
+                const apiBase = process.env.NEXT_PUBLIC_API_URL
+                if (!apiBase) {
+                    throw new Error("API base URL not configured")
+                }
                 const user = session?.user as any;
                 const userId = user?.backendId || user?.id;
                 const token = (session as any)?.accessToken;
@@ -79,7 +89,7 @@ export default function OrdersPage() {
                     return;
                 }
 
-                const response = await fetch(`http://localhost:5267/api/orders/user/${user.backendId}`, {
+                const response = await fetch(`${apiBase}/orders/user/${user.backendId}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -216,10 +226,29 @@ export default function OrdersPage() {
         );
     };
 
-    if (loading) {
+    if (status === "loading" || loading) {
         return (
             <div className="container py-8 max-w-4xl flex justify-center items-center h-[50vh]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (!session?.user) {
+        return (
+            <div className="container py-12 max-w-xl">
+                <Card className="card-glass border-none text-center">
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Sign in required</CardTitle>
+                        <CardDescription>Sign in with Google to view your orders.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button onClick={() => signIn("google")}>
+                            <LogIn className="h-4 w-4 mr-2" />
+                            Sign in with Google
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }

@@ -9,7 +9,7 @@ export class ApiClient {
   private readonly defaultHeaders: HeadersInit
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_API_URL || ''
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     }
@@ -21,6 +21,12 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     try {
+      if (!this.baseUrl) {
+        return {
+          isSuccess: false,
+          error: 'API base URL not configured (set NEXT_PUBLIC_API_URL)'
+        }
+      }
       const url = new URL(`${this.baseUrl}${endpoint}`)
       
       // Add query parameters

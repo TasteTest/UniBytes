@@ -15,8 +15,11 @@ export default function SignIn() {
         const loginToBackend = async () => {
             if (status === "authenticated" && session?.user?.email) {
                 try {
-                    
-                    const res = await fetch(`http://localhost:5267/api/users/by-email/${session.user.email}`);
+                    const apiBase = process.env.NEXT_PUBLIC_API_URL
+                    if (!apiBase) {
+                        throw new Error("API base URL not configured")
+                    }
+                    const res = await fetch(`${apiBase}/users/by-email/${session.user.email}`);
                     if(res.ok) {
                         const userData = await res.json();
                         localStorage.setItem("token", JSON.stringify(userData));

@@ -73,7 +73,9 @@ export default function KitchenPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch("http://localhost:5267/api/orders")
+      const apiBase = process.env.NEXT_PUBLIC_API_URL
+      if (!apiBase) throw new Error("API base URL not configured")
+      const res = await fetch(`${apiBase}/orders`)
       if (!res.ok) throw new Error("Failed to fetch orders")
       const data: KitchenOrder[] = await res.json()
       const active = data.filter((o) => {
@@ -98,8 +100,10 @@ export default function KitchenPage() {
 
   const updateOrderStatus = async (orderId: string, newStatus: "pending" | "preparing" | "ready" | "completed") => {
     try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL
+      if (!apiBase) throw new Error("API base URL not configured")
       const code = getBackendStatusCode(newStatus)
-      const res = await fetch(`http://localhost:5267/api/orders/${orderId}/status`, {
+      const res = await fetch(`${apiBase}/orders/${orderId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderStatus: code }),

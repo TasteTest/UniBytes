@@ -1,0 +1,233 @@
+name: CI/CD — Build, Push to GHCR, Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch: {}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    env:
+      ACR_IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/unibytes-backend:latest
+      ACR_IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/unibytes-frontend:latest
+      # PostgreSQL connection (from secret)
+      CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
+      # Frontend OAuth & Payment secrets
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      # Azure configuration
+      RG: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      ENV_NAME: ${{ secrets.AZURE_CONTAINERAPPS_ENV }}
+      APP_BACKEND: unibytes-backend
+      APP_FRONTEND: unibytes-frontend
+      STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get backend URL
+        id: get_backend_url
+        run: |
+          BACKEND_URL=$(az containerapp show --name $APP_BACKEND --resource-group $RG --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || echo "")
+          if [ -z "$BACKEND_URL" ]; then
+            echo "Backend not found, will use placeholder"
+            BACKEND_URL="unibytes-backend.placeholder.azurecontainerapps.io"
+          fi
+          echo "backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "Backend URL: $BACKEND_URL"
+
+      - name: Build and push backend image
+        run: |
+          docker buildx create --use --name builder || docker buildx use builder
+          docker buildx build \
+            --platform linux/amd64 \
+            --push \
+            --tag $ACR_IMAGE_BACKEND \
+            ./backend
+
+      - name: Build and push frontend image
+        run: |
+          BACKEND_URL="${{ steps.get_backend_url.outputs.backend_url }}"
+          docker buildx build \
+            --platform linux/amd64 \
+            --push \
+            --tag $ACR_IMAGE_FRONTEND \
+            --build-arg NEXT_PUBLIC_API_URL="https://$BACKEND_URL/api" \
+            --build-arg API_URL="https://$BACKEND_URL/api" \
+            --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$STRIPE_PUBLISHABLE_KEY" \
+            ./frontend
+
+      - name: Deploy backend to Container Apps
+        run: |
+          # Extract PostgreSQL values from connection string
+          IFS=';' read -ra PAIRS <<< "$CONNECTION_STRING"
+          for pair in "${PAIRS[@]}"; do
+            if [[ "$pair" == "User Id="* ]]; then
+              POSTGRES_USER="${pair#User Id=}"
+            elif [[ "$pair" == "Password="* ]]; then
+              POSTGRES_PASSWORD="${pair#Password=}"
+            elif [[ "$pair" == "Server="* ]]; then
+              POSTGRES_HOST="${pair#Server=}"
+            elif [[ "$pair" == "Port="* ]]; then
+              POSTGRES_PORT="${pair#Port=}"
+            elif [[ "$pair" == "Database="* ]]; then
+              POSTGRES_DB="${pair#Database=}"
+            fi
+          done
+          POSTGRES_PORT="${POSTGRES_PORT:-5432}"
+          
+          # Update or create backend app
+          if az containerapp show --name $APP_BACKEND --resource-group $RG >/dev/null 2>&1; then
+            echo "Updating existing backend app..."
+            # Update secrets
+            az containerapp secret set \
+              --name $APP_BACKEND \
+              --resource-group $RG \
+              --secrets "postgres-password=$POSTGRES_PASSWORD" \
+              --output none || true
+            
+            # Update app
+            az containerapp update \
+              --name $APP_BACKEND \
+              --resource-group $RG \
+              --image $ACR_IMAGE_BACKEND \
+              --set-env-vars \
+                "STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT" \
+                "BLOB_CONTAINER_NAME=uploads" \
+                "ASPNETCORE_ENVIRONMENT=Production" \
+                "POSTGRES_HOST=$POSTGRES_HOST" \
+              --set-env-vars \
+                "POSTGRES_PORT=$POSTGRES_PORT" \
+                "POSTGRES_DB=$POSTGRES_DB" \
+              --set-env-vars \
+                "POSTGRES_USER=$POSTGRES_USER" \
+                "POSTGRES_PASSWORD=secretref:postgres-password" \
+              --output none
+          else
+            echo "Creating new backend app..."
+          az containerapp create \
+              --name $APP_BACKEND \
+              --resource-group $RG \
+              --environment $ENV_NAME \
+            --image $ACR_IMAGE_BACKEND \
+              --cpu 0.25 \
+              --memory 0.5Gi \
+              --min-replicas 0 \
+              --max-replicas 1 \
+              --ingress external \
+              --target-port 8080 \
+              --registry-server ghcr.io \
+              --registry-username ${{ github.repository_owner }} \
+              --registry-password ${{ secrets.GHCR_TOKEN }} \
+              --secrets "postgres-password=$POSTGRES_PASSWORD" \
+              --env-vars \
+                "STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT" \
+                "BLOB_CONTAINER_NAME=uploads" \
+                "ASPNETCORE_ENVIRONMENT=Production" \
+                "POSTGRES_HOST=$POSTGRES_HOST" \
+                "POSTGRES_PORT=$POSTGRES_PORT" \
+                "POSTGRES_DB=$POSTGRES_DB" \
+                "POSTGRES_USER=$POSTGRES_USER" \
+                "POSTGRES_PASSWORD=secretref:postgres-password" \
+              --output none
+          fi
+
+      - name: Get updated backend URL
+        id: get_updated_backend_url
+        run: |
+          BACKEND_URL=$(az containerapp show --name $APP_BACKEND --resource-group $RG --query properties.configuration.ingress.fqdn -o tsv)
+          echo "backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "Backend URL: $BACKEND_URL"
+
+      - name: Deploy frontend to Container Apps
+        run: |
+          BACKEND_URL="${{ steps.get_updated_backend_url.outputs.backend_url }}"
+          FRONTEND_URL=$(az containerapp show --name $APP_FRONTEND --resource-group $RG --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || echo "")
+          
+          # Update or create frontend app
+          if az containerapp show --name $APP_FRONTEND --resource-group $RG >/dev/null 2>&1; then
+            echo "Updating existing frontend app..."
+            # Update secrets
+            az containerapp secret set \
+              --name $APP_FRONTEND \
+              --resource-group $RG \
+              --secrets \
+                "google-client-secret=$GOOGLE_CLIENT_SECRET" \
+                "nextauth-secret=$NEXTAUTH_SECRET" \
+              --output none || true
+            
+            # Update app
+            az containerapp update \
+              --name $APP_FRONTEND \
+              --resource-group $RG \
+              --image $ACR_IMAGE_FRONTEND \
+              --set-env-vars \
+                "NEXT_PUBLIC_API_URL=https://$BACKEND_URL/api" \
+                "API_URL=https://$BACKEND_URL/api" \
+                "NEXTAUTH_URL=https://$FRONTEND_URL" \
+                "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
+                "GOOGLE_CLIENT_SECRET=secretref:google-client-secret" \
+                "NEXTAUTH_SECRET=secretref:nextauth-secret" \
+                "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY" \
+              --output none
+          else
+            echo "Creating new frontend app..."
+          az containerapp create \
+              --name $APP_FRONTEND \
+              --resource-group $RG \
+              --environment $ENV_NAME \
+            --image $ACR_IMAGE_FRONTEND \
+              --cpu 0.25 \
+              --memory 0.5Gi \
+              --min-replicas 0 \
+              --max-replicas 1 \
+              --ingress external \
+              --target-port 3000 \
+              --registry-server ghcr.io \
+              --registry-username ${{ github.repository_owner }} \
+              --registry-password ${{ secrets.GHCR_TOKEN }} \
+              --secrets \
+                "google-client-secret=$GOOGLE_CLIENT_SECRET" \
+                "nextauth-secret=$NEXTAUTH_SECRET" \
+              --env-vars \
+                "NEXT_PUBLIC_API_URL=https://$BACKEND_URL/api" \
+                "API_URL=https://$BACKEND_URL/api" \
+                "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
+                "GOOGLE_CLIENT_SECRET=secretref:google-client-secret" \
+                "NEXTAUTH_SECRET=secretref:nextauth-secret" \
+                "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY" \
+              --output none
+            
+            # Get frontend URL and update NEXTAUTH_URL
+            FRONTEND_URL=$(az containerapp show --name $APP_FRONTEND --resource-group $RG --query properties.configuration.ingress.fqdn -o tsv)
+            az containerapp update \
+              --name $APP_FRONTEND \
+              --resource-group $RG \
+              --set-env-vars "NEXTAUTH_URL=https://$FRONTEND_URL" \
+              --output none || true
+          fi
+
+    outputs:
+      backend_image: ${{ env.ACR_IMAGE_BACKEND }}
+      frontend_image: ${{ env.ACR_IMAGE_FRONTEND }}

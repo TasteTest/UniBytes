@@ -7,11 +7,14 @@ import { Result } from '../types/common.types'
 import { CreateCheckoutSessionRequest, CheckoutSessionResponse, Payment } from '../types/payment.types'
 import {getSession} from "next-auth/react";
 
-const PAYMENT_API_URL = process.env.NEXT_PUBLIC_PAYMENT_API_URL || 'http://localhost:5267/api'
+const PAYMENT_API_URL = process.env.NEXT_PUBLIC_PAYMENT_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
 
 export class PaymentService {
     async createCheckoutSession(request: CreateCheckoutSessionRequest): Promise<Result<CheckoutSessionResponse>> {
         try {
+            if (!PAYMENT_API_URL) {
+                return { isSuccess: false, error: 'Payment API base URL not configured' }
+            }
             const session = await getSession();
             if (!session?.accessToken) {
                 return { isSuccess: false, error: 'User not authenticated' };
@@ -55,6 +58,9 @@ export class PaymentService {
 
   async verifyPayment(sessionId: string): Promise<Result<Payment>> {
     try {
+      if (!PAYMENT_API_URL) {
+        return { isSuccess: false, error: 'Payment API base URL not configured' }
+      }
       const response = await fetch(`${PAYMENT_API_URL}/payments/verify/${sessionId}`)
 
       if (!response.ok) {
@@ -80,6 +86,9 @@ export class PaymentService {
 
   async getPaymentByOrderId(orderId: string): Promise<Result<Payment>> {
     try {
+      if (!PAYMENT_API_URL) {
+        return { isSuccess: false, error: 'Payment API base URL not configured' }
+      }
       const response = await fetch(`${PAYMENT_API_URL}/payments/order/${orderId}`)
 
       if (!response.ok) {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Loader2 } from "lucide-react"
+import { Search, Plus, Loader2, LogIn } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useCartStore, type MenuItem } from "@/lib/store"
 import { useToast } from "@/hooks/use-toast"
 import { formatCurrency } from "@/lib/utils"
+import Image from "next/image"
+import { useSession, signIn } from "next-auth/react"
 
 interface BackendMenuItem {
   id: string
@@ -33,6 +35,7 @@ interface Category {
 }
 
 export default function MenuPage() {
+  const { data: session } = useSession()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
@@ -40,6 +43,7 @@ export default function MenuPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const addItem = useCartStore((state) => state.addItem)
   const { toast } = useToast()
 
@@ -47,11 +51,15 @@ export default function MenuPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
+        const apiBase = process.env.NEXT_PUBLIC_API_URL
+        if (!apiBase) {
+          throw new Error("API base URL not configured")
+        }
         
         // Fetch categories and menu items in parallel
         const [categoriesRes, menuItemsRes] = await Promise.all([
-          fetch('http://localhost:5267/api/categories'),
-          fetch('http://localhost:5267/api/menuitems')
+          fetch(`${apiBase}/categories`),
+          fetch(`${apiBase}/menuitems`)
         ])
 
         if (!categoriesRes.ok || !menuItemsRes.ok) {
@@ -100,6 +108,10 @@ export default function MenuPage() {
   })
 
   const handleAddToCart = (menuItem: MenuItem) => {
+    if (!session?.user) {
+      setShowLoginDialog(true)
+      return
+    }
     addItem({
       id: `cart-${Date.now()}`,
       menuItem,
@@ -176,26 +188,6 @@ export default function MenuPage() {
           />
         </div>
       </div>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-4">Our Menu</h1>
-        <p className="text-muted-foreground">
-          Browse our selection of delicious meals and add them to your cart
-        </p>
-      </div>
-
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search menu items..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
 
       {/* Categories */}
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
@@ -216,23 +208,38 @@ export default function MenuPage() {
             className="card-glass border-none cursor-pointer group"
             onClick={() => setSelectedItem(item)}
           >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
+            <div className="flex flex-col h-full">
+              <div className="relative w-full h-44 overflow-hidden rounded-t-xl bg-muted">
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    priority={false}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+                    No image
+                  </div>
+                )}
+                <Badge variant="secondary" className="absolute top-3 right-3">
+                  {item.category}
+                </Badge>
+              </div>
+              <CardHeader className="pb-0">
                   <CardTitle className="group-hover:text-primary transition-colors">
                     {item.name}
                   </CardTitle>
-                  <CardDescription className="mt-2">{item.description}</CardDescription>
-                </div>
-                <Badge variant="secondary">{item.category}</Badge>
-              </div>
+                <CardDescription className="mt-1 line-clamp-2">{item.description}</CardDescription>
             </CardHeader>
-            <CardContent>
+              <CardContent className="pt-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>⏱️ {item.preparationTime} min</span>
               </div>
             </CardContent>
-            <CardFooter className="flex items-center justify-between">
+              <CardFooter className="mt-auto flex items-center justify-between pt-2">
               <span className="text-2xl font-bold text-primary">
                 {formatCurrency(item.price)}
               </span>
@@ -247,6 +254,7 @@ export default function MenuPage() {
                 Add
               </Button>
             </CardFooter>
+            </div>
           </Card>
         ))}
       </div>
@@ -291,6 +299,26 @@ export default function MenuPage() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sign in required</DialogTitle>
+            <DialogDescription>
+              Please sign in with Google to add items to your cart.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowLoginDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => signIn("google")}>
+              <LogIn className="h-4 w-4 mr-2" />
+              Sign in with Google
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

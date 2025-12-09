@@ -7,17 +7,16 @@ public static class CorsConfiguration
 {
     public static IServiceCollection AddCorsConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
-        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? ["http://localhost:3000", "http://localhost:3001"];
-
+        // For testing allow any origin. Remove or restrict this in production.
         services.AddCors(options =>
         {
             options.AddPolicy("CorsPolicy", builder =>
             {
-                builder.WithOrigins(allowedOrigins)
+                builder
+                    .AllowAnyOrigin()
                     .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
+                    .AllowAnyHeader();
+                // Note: AllowCredentials cannot be used with AllowAnyOrigin()
             });
         });
 
