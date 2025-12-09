@@ -14,8 +14,9 @@ jobs:
       id-token: write
 
     env:
-      ACR_IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/unibytes-backend:latest
-      ACR_IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/unibytes-frontend:latest
+      OWNER_LC: ${{ github.repository_owner }}
+      ACR_IMAGE_BACKEND: ghcr.io/${{ toLower(github.repository_owner) }}/unibytes-backend:latest
+      ACR_IMAGE_FRONTEND: ghcr.io/${{ toLower(github.repository_owner) }}/unibytes-frontend:latest
       # PostgreSQL connection (from secret)
       CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
       # Frontend OAuth & Payment secrets
