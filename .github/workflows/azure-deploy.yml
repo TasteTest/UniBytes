@@ -116,6 +116,9 @@ jobs:
               --name $APP_BACKEND \
               --resource-group $RG \
               --image $BACKEND_TAG \
+              --registry-server ghcr.io \
+              --registry-username ${{ github.repository_owner }} \
+              --registry-password ${{ secrets.GHCR_TOKEN }} \
               --set-env-vars \
                 "STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT" \
                 "BLOB_CONTAINER_NAME=uploads" \
