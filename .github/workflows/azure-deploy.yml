@@ -110,15 +110,14 @@ jobs:
               --resource-group $RG \
               --secrets "postgres-password=$POSTGRES_PASSWORD" \
               --output none || true
-            
-            # Update app
+
+            # Prepare registry credentials JSON and update app (use --set to update registries)
+            REGISTRIES_JSON='[{"server":"ghcr.io","username":"'"${{ github.repository_owner }}"'","password":"'"${{ secrets.GHCR_TOKEN }}"'"}]'
             az containerapp update \
               --name $APP_BACKEND \
               --resource-group $RG \
               --image $BACKEND_TAG \
-              --registry-server ghcr.io \
-              --registry-username ${{ github.repository_owner }} \
-              --registry-password ${{ secrets.GHCR_TOKEN }} \
+              --set configuration.registries="$REGISTRIES_JSON" \
               --set-env-vars \
                 "STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT" \
                 "BLOB_CONTAINER_NAME=uploads" \
@@ -184,11 +183,13 @@ jobs:
                 "nextauth-secret=$NEXTAUTH_SECRET" \
               --output none || true
             
-            # Update app
+            # Prepare registry credentials JSON and update app (use --set to update registries)
+            REGISTRIES_JSON='[{"server":"ghcr.io","username":"'"${{ github.repository_owner }}"'","password":"'"${{ secrets.GHCR_TOKEN }}"'"}]'
             az containerapp update \
               --name $APP_FRONTEND \
               --resource-group $RG \
               --image $FRONTEND_TAG \
+              --set configuration.registries="$REGISTRIES_JSON" \
               --set-env-vars \
                 "NEXT_PUBLIC_API_URL=https://$BACKEND_URL/api" \
                 "API_URL=https://$BACKEND_URL/api" \
