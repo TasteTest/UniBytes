@@ -31,16 +31,32 @@ public class DatabaseConfigurationTests
     }
 
     [Fact]
-    public void AddDatabaseConfiguration_ThrowsException_WhenConnectionStringMissing()
+    public void AddDatabaseConfiguration_UsesEnvDefaults_WhenConnectionStringMissing()
     {
         // Arrange
+        Environment.SetEnvironmentVariable("POSTGRES_HOST", "envhost");
+        Environment.SetEnvironmentVariable("POSTGRES_PORT", "6543");
+        Environment.SetEnvironmentVariable("POSTGRES_DB", "envdb");
+        Environment.SetEnvironmentVariable("POSTGRES_USER", "envuser");
+        Environment.SetEnvironmentVariable("POSTGRES_PASSWORD", "envpass");
+
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().Build();
 
-        // Act & Assert
-        var act = () => services.AddDatabaseConfiguration(configuration);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Connection string*DefaultConnection*not found*");
+        // Act
+        services.AddDatabaseConfiguration(configuration);
+        var provider = services.BuildServiceProvider();
+
+        // Assert
+        var context = provider.GetService<ApplicationDbContext>();
+        context.Should().NotBeNull();
+
+        // Cleanup
+        Environment.SetEnvironmentVariable("POSTGRES_HOST", null);
+        Environment.SetEnvironmentVariable("POSTGRES_PORT", null);
+        Environment.SetEnvironmentVariable("POSTGRES_DB", null);
+        Environment.SetEnvironmentVariable("POSTGRES_USER", null);
+        Environment.SetEnvironmentVariable("POSTGRES_PASSWORD", null);
     }
 
     [Fact]

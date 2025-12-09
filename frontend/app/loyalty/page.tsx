@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { useSession, signIn } from "next-auth/react"
 import { Gift, Star, TrendingUp, Award, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,20 +14,20 @@ import { AVAILABLE_REWARDS } from "@/lib/config/rewards"
 import type { LoyaltyAccountDetails } from "@/lib/types/loyalty.types"
 
 export default function LoyaltyPage() {
+  const { data: session, status } = useSession()
   const [accountDetails, setAccountDetails] = useState<LoyaltyAccountDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [redeeming, setRedeeming] = useState<string | null>(null)
   const { toast } = useToast()
 
 
-  // For now, using a demo user ID
-  const userId = "3fa85f64-5717-4562-b3fc-2c963f66afa7"
+  const userId = session?.user?.backendId || session?.user?.id
 
-  useEffect(() => {
-    loadLoyaltyData()
-  }, [])
-
-  const loadLoyaltyData = async () => {
+  const loadLoyaltyData = useCallback(async () => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
     try {
       setLoading(true)
       const response = await loyaltyService.getOrCreateAccount(userId)
@@ -51,10 +52,18 @@ export default function LoyaltyPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast, userId])
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      loadLoyaltyData()
+    } else if (status !== "loading") {
+      setLoading(false)
+    }
+  }, [loadLoyaltyData, status])
 
   const handleRedeem = async (rewardId: string, points: number, rewardName: string) => {
-    if (!accountDetails) return
+    if (!accountDetails || !userId) return
 
     try {
       setRedeeming(rewardId)
@@ -96,10 +105,27 @@ export default function LoyaltyPage() {
     }
   }
 
-  if (loading) {
+  if (status === "loading" || loading) {
     return (
       <div className="container py-8 max-w-4xl flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!session?.user) {
+    return (
+      <div className="container py-8 max-w-4xl flex items-center justify-center min-h-[400px]">
+        <Card className="card-glass border-none text-center">
+          <CardContent className="py-12 space-y-4">
+            <CardTitle className="text-2xl">Sign in required</CardTitle>
+            <CardDescription>Sign in with Google to access your rewards.</CardDescription>
+            <Button onClick={() => signIn("google")}>
+              <Gift className="h-4 w-4 mr-2" />
+              Sign in with Google
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }

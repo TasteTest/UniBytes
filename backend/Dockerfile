@@ -18,9 +18,7 @@ RUN dotnet restore UniBytes.sln
 # Copy all source files
 COPY . .
 
-# Run tests - if any test fails, the Docker build will fail
-# Using TEST_RUN_ID build arg to ensure tests always run (even with cache)
-# To force test execution: docker compose build --build-arg TEST_RUN_ID=$(date +%s) backend
+# Run tests
 RUN echo "========================================" && \
     echo "Running tests..." && \
     echo "Test Run ID: ${TEST_RUN_ID}" && \

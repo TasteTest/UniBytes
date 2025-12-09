@@ -2,7 +2,7 @@ import NextAuth from "next-auth"
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5267/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
 const authOptions: NextAuthOptions = {
   providers: [

@@ -17,7 +17,7 @@ import {
 } from '../types/loyalty.types'
 
 // Create a dedicated client for loyalty service
-const loyaltyApiUrl = process.env.NEXT_PUBLIC_LOYALTY_API_URL || 'http://localhost:5024/api'
+const loyaltyApiUrl = process.env.NEXT_PUBLIC_LOYALTY_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
 const loyaltyClient = new ApiClient(loyaltyApiUrl)
 
 export class LoyaltyService {
