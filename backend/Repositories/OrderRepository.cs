@@ -10,6 +10,14 @@ namespace backend.Repositories;
 /// </summary>
 public class OrderRepository(ApplicationDbContext context) : Repository<Order>(context), IOrderRepository
 {
+    public override async Task<IEnumerable<Order>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(o => o.OrderItems)
+            .OrderByDescending(o => o.PlacedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<Order>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await DbSet

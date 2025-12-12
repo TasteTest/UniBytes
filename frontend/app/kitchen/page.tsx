@@ -63,6 +63,12 @@ const getStation = (items: KitchenOrderItem[]): "grill" | "salad" | "pizza" | "d
   return "general"
 }
 
+// Generate a stable order number from timestamp (1-1000, resets after 1000)
+const getStableOrderNumber = (createdAt: string): number => {
+  const timestamp = new Date(createdAt).getTime()
+  return (timestamp % 1000) + 1
+}
+
 export default function KitchenPage() {
   const [orders, setOrders] = useState<KitchenOrder[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,9 +87,9 @@ export default function KitchenPage() {
           const s = (o.orderStatus || "").toString().toLowerCase()
           return s !== "cancelled" && s !== "failed" && s !== "completed"
         })
-        .map((o: any, index: number, arr: any[]) => ({
+        .map((o: any) => ({
           ...o,
-          orderIndex: arr.length - index,
+          orderIndex: getStableOrderNumber(o.createdAt),
         }))
       setOrders(active)
       setError(null)
@@ -150,20 +156,31 @@ export default function KitchenPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div>
-            {order.orderItems.map((item, index) => (
-              <div key={index} className="mb-2">
-                <div className="flex items-start gap-2">
-                  <Badge variant="outline" className="mt-0.5">{item.quantity}x</Badge>
-                  <div className="flex-1">
-                    <p className="font-medium">{item.name}</p>
-                    {item.modifiers && <p className="text-sm text-muted-foreground">Custom modifiers</p>}
-                    <p className="text-sm text-muted-foreground">{formatCurrency(item.unitPrice)} each</p>
+          {/* Order Items - Full Details */}
+          <div className="bg-muted/50 rounded-lg p-3">
+            <h4 className="font-semibold mb-3 text-sm uppercase tracking-wide">Items to Prepare</h4>
+            {(!order.orderItems || order.orderItems.length === 0) ? (
+              <p className="text-muted-foreground text-sm">No items found</p>
+            ) : (
+              order.orderItems.map((item, index) => (
+                <div key={index} className="mb-3 last:mb-0">
+                  <div className="flex items-start gap-3">
+                    <Badge variant="default" className="mt-0.5 min-w-[40px] justify-center">{item.quantity}x</Badge>
+                    <div className="flex-1">
+                      <p className="font-bold text-lg">{item.name}</p>
+                      {item.modifiers && (
+                        <div className="mt-1 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded text-sm">
+                          <span className="font-medium">Special instructions: </span>
+                          {typeof item.modifiers === 'object' ? JSON.stringify(item.modifiers) : item.modifiers}
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground mt-1">{formatCurrency(item.unitPrice)} × {item.quantity} = {formatCurrency(item.totalPrice)}</p>
+                    </div>
                   </div>
+                  {index < order.orderItems.length - 1 && <Separator className="mt-3" />}
                 </div>
-                {index < order.orderItems.length - 1 && <Separator className="mt-2" />}
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <Separator />

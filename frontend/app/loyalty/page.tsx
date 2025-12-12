@@ -153,15 +153,24 @@ export default function LoyaltyPage() {
     ? (currentPoints / nextReward.pointsRequired) * 100
     : 100
 
-  // Get recent transactions (earned points)
+  // Get recent transactions (earned points) - clean up descriptions to remove IDs
   const recentActivity = accountDetails.recentTransactions
     .filter(t => t.changeAmount > 0)
     .slice(0, 5)
-    .map(t => ({
-      date: new Date(t.createdAt).toLocaleDateString(),
-      description: t.reason,
-      points: `+${t.changeAmount}`,
-    }))
+    .map((t, index) => {
+      // Clean up the reason to remove any IDs (GUIDs)
+      let description = t.reason || "Points earned"
+      // Remove GUID patterns from the description
+      description = description.replace(/:\s*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
+      description = description.trim() || "Order completion"
+
+      return {
+        date: new Date(t.createdAt).toLocaleDateString(),
+        description,
+        points: `+${t.changeAmount}`,
+      }
+    })
+
 
   return (
     <div className="container py-8 max-w-4xl">
