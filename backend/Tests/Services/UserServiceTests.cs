@@ -604,5 +604,133 @@ public class UserServiceTests
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Contain("Error updating last login");
     }
+
+    [Fact]
+    public async Task GetByEmailAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var email = "test@example.com";
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(email, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userService.GetByEmailAsync(email);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving user");
+        result.Error.Should().Contain("Database error");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        _mockUserRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userService.GetAllAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving users");
+    }
+
+    [Fact]
+    public async Task GetActiveUsersAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        _mockUserRepository.Setup(x => x.GetActiveUsersAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userService.GetActiveUsersAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving active users");
+    }
+
+    [Fact]
+    public async Task GetAdminUsersAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        _mockUserRepository.Setup(x => x.GetAdminUsersAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userService.GetAdminUsersAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving admin users");
+    }
+
+    [Fact]
+    public async Task CreateAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var createRequest = new CreateUserRequest
+        {
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User"
+        };
+
+        _mockUserRepository.Setup(x => x.EmailExistsAsync(createRequest.Email, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userService.CreateAsync(createRequest);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error creating user");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var updateRequest = new UpdateUserRequest
+        {
+            FirstName = "Updated"
+        };
+
+        _mockUserRepository.Setup(x => x.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userService.UpdateAsync(userId, updateRequest);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error updating user");
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        _mockUserRepository.Setup(x => x.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userService.DeleteAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error deleting user");
+    }
 }
 

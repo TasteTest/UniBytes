@@ -84,6 +84,10 @@ jobs:
 
       - name: Deploy backend to Container Apps
         run: |
+          # Get current frontend URL first
+          FRONTEND_URL=$(az containerapp show --name $APP_FRONTEND --resource-group $RG --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || echo "unibytes-frontend.placeholder.azurecontainerapps.io")
+          echo "Frontend URL for backend: $FRONTEND_URL"
+          
           # Extract PostgreSQL values from connection string
           IFS=';' read -ra PAIRS <<< "$CONNECTION_STRING"
           for pair in "${PAIRS[@]}"; do
@@ -129,6 +133,7 @@ jobs:
               --set-env-vars \
                 "POSTGRES_USER=$POSTGRES_USER" \
                 "POSTGRES_PASSWORD=secretref:postgres-password" \
+                "FRONTEND_URL=https://$FRONTEND_URL" \
               --output none
           else
             echo "Creating new backend app..."
@@ -156,6 +161,7 @@ jobs:
                 "POSTGRES_DB=$POSTGRES_DB" \
                 "POSTGRES_USER=$POSTGRES_USER" \
                 "POSTGRES_PASSWORD=secretref:postgres-password" \
+                "FRONTEND_URL=https://$FRONTEND_URL" \
               --output none
           fi
 

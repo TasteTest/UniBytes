@@ -430,5 +430,108 @@ public class UserAnalyticsServiceTests
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Contain("Error retrieving user analytics");
     }
+
+    [Fact]
+    public async Task GetByIdAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var analyticsId = Guid.NewGuid();
+        _mockUserAnalyticsRepository.Setup(x => x.GetByIdAsync(analyticsId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userAnalyticsService.GetByIdAsync(analyticsId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving user analytics");
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_NotFound_ReturnsFailure()
+    {
+        // Arrange
+        var analyticsId = Guid.NewGuid();
+        _mockUserAnalyticsRepository.Setup(x => x.GetByIdAsync(analyticsId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserAnalytics?)null);
+
+        // Act
+        var result = await _userAnalyticsService.GetByIdAsync(analyticsId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain($"User analytics with ID {analyticsId} not found");
+    }
+
+    [Fact]
+    public async Task GetByEventTypeAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var eventType = "page_view";
+        _mockUserAnalyticsRepository.Setup(x => x.GetByEventTypeAsync(eventType, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userAnalyticsService.GetByEventTypeAsync(eventType);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving user analytics");
+    }
+
+    [Fact]
+    public async Task GetByDateRangeAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var startDate = DateTime.UtcNow.AddDays(-7);
+        var endDate = DateTime.UtcNow;
+        _mockUserAnalyticsRepository.Setup(x => x.GetByDateRangeAsync(startDate, endDate, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userAnalyticsService.GetByDateRangeAsync(startDate, endDate);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving user analytics");
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var analyticsId = Guid.NewGuid();
+        _mockUserAnalyticsRepository.Setup(x => x.GetByIdAsync(analyticsId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _userAnalyticsService.DeleteAsync(analyticsId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error deleting user analytics");
+    }
+
+    [Fact]
+    public async Task DeleteAsync_NotFound_ReturnsFailure()
+    {
+        // Arrange
+        var analyticsId = Guid.NewGuid();
+        _mockUserAnalyticsRepository.Setup(x => x.GetByIdAsync(analyticsId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserAnalytics?)null);
+
+        // Act
+        var result = await _userAnalyticsService.DeleteAsync(analyticsId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain($"User analytics with ID {analyticsId} not found");
+    }
 }
 

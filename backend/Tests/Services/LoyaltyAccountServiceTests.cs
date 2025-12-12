@@ -803,5 +803,341 @@ public class LoyaltyAccountServiceTests
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Contain("Error creating account");
     }
+
+    [Fact]
+    public async Task GetByIdAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByIdAsync(accountId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.GetByIdAsync(accountId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving loyalty account");
+    }
+
+    [Fact]
+    public async Task GetByUserIdAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.GetByUserIdAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving loyalty account");
+    }
+
+    [Fact]
+    public async Task GetByUserIdAsync_AccountNotFound_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LoyaltyAccount?)null);
+
+        // Act
+        var result = await _loyaltyAccountService.GetByUserIdAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain($"Loyalty account for user {userId} not found");
+    }
+
+    [Fact]
+    public async Task GetAccountDetailsAsync_AccountNotFound_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdWithAllDataAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LoyaltyAccount?)null);
+
+        // Act
+        var result = await _loyaltyAccountService.GetAccountDetailsAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain($"Loyalty account for user {userId} not found");
+    }
+
+    [Fact]
+    public async Task GetAccountDetailsAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdWithAllDataAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.GetAccountDetailsAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving account details");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        _mockLoyaltyAccountRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.GetAllAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving accounts");
+    }
+
+    [Fact]
+    public async Task GetActiveAccountsAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        _mockLoyaltyAccountRepository.Setup(x => x.GetActiveAccountsAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.GetActiveAccountsAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving active accounts");
+    }
+
+    [Fact]
+    public async Task GetByTierAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var tier = 1;
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByTierAsync(tier, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.GetByTierAsync(tier);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving accounts");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        var updateRequest = new UpdateLoyaltyAccountRequest();
+
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByIdAsync(accountId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.UpdateAsync(accountId, updateRequest);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error updating account");
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var accountId = Guid.NewGuid();
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByIdAsync(accountId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.DeleteAsync(accountId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error deleting account");
+    }
+
+    [Fact]
+    public async Task AddPointsAsync_AccountNotFound_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new AddPointsRequest
+        {
+            UserId = userId,
+            Points = 100,
+            Reason = "Test"
+        };
+
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LoyaltyAccount?)null);
+
+        // Act
+        var result = await _loyaltyAccountService.AddPointsAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain($"Loyalty account not found for user {userId}");
+    }
+
+    [Fact]
+    public async Task AddPointsAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new AddPointsRequest
+        {
+            UserId = userId,
+            Points = 100,
+            Reason = "Test"
+        };
+
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.AddPointsAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error adding points");
+    }
+
+    [Fact]
+    public async Task RedeemPointsAsync_DeductPointsFails_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new RedeemPointsRequest
+        {
+            UserId = userId,
+            Points = 50,
+            RewardType = "Discount"
+        };
+
+        var account = new LoyaltyAccount
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PointsBalance = 100
+        };
+
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(account);
+
+        _mockLoyaltyAccountRepository.Setup(x => x.DeductPointsAsync(
+            userId, request.Points, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _loyaltyAccountService.RedeemPointsAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Failed to deduct points");
+    }
+
+    [Fact]
+    public async Task RedeemPointsAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new RedeemPointsRequest
+        {
+            UserId = userId,
+            Points = 50,
+            RewardType = "Discount"
+        };
+
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.RedeemPointsAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error redeeming points");
+    }
+
+    [Fact]
+    public async Task GetPointsBalanceAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _loyaltyAccountService.GetPointsBalanceAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error getting balance");
+    }
+
+    [Fact]
+    public async Task CreateAsync_UniqueConstraintViolation_GetByUserIdReturnsNull_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var createRequest = new CreateLoyaltyAccountRequest
+        {
+            UserId = userId
+        };
+
+        var account = new LoyaltyAccount
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PointsBalance = 0,
+            Tier = LoyaltyTier.Bronze
+        };
+
+        _mockLoyaltyAccountRepository.Setup(x => x.UserHasAccountAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockMapper.Setup(x => x.Map<LoyaltyAccount>(createRequest))
+            .Returns(account);
+
+        var pgException = new PostgresException("duplicate key", "ERROR", "ERROR", "23505");
+        var dbUpdateException = new DbUpdateException("Duplicate key", pgException);
+
+        _mockLoyaltyAccountRepository.Setup(x => x.AddAsync(It.IsAny<LoyaltyAccount>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(dbUpdateException);
+
+        _mockLoyaltyAccountRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LoyaltyAccount?)null);
+
+        // Act
+        var result = await _loyaltyAccountService.CreateAsync(createRequest);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Loyalty account already exists but could not be loaded");
+    }
 }
 

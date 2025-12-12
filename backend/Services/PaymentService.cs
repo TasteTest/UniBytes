@@ -5,7 +5,6 @@ using backend.Repositories.Interfaces;
 using backend.Services.Interfaces;
 using backend.DTOs.Payment.Request;
 using backend.DTOs.Payment.Response;
-using Stripe;
 using Stripe.Checkout;
 
 namespace backend.Services;
@@ -13,25 +12,46 @@ namespace backend.Services;
 /// <summary>
 /// Payment service implementation
 /// </summary>
-public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper, ILogger<PaymentService> logger, IConfiguration configuration)
-    : IPaymentService
+public class PaymentService : IPaymentService
 {
+    private readonly IPaymentRepository _paymentRepository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<PaymentService> _logger;
+    private readonly IStripeServiceWrapper _stripeWrapper;
+    private readonly string _frontendUrl;
+
+    public PaymentService(
+        IPaymentRepository paymentRepository, 
+        IMapper mapper, 
+        ILogger<PaymentService> logger,
+        IStripeServiceWrapper stripeWrapper,
+        IConfiguration configuration)
+    {
+        _paymentRepository = paymentRepository;
+        _mapper = mapper;
+        _logger = logger;
+        _stripeWrapper = stripeWrapper;
+        _frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") 
+                       ?? configuration["FrontendUrl"] 
+                       ?? "http://localhost:3000";
+    }
+
     public async Task<Result<PaymentResponse>> GetPaymentByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var payment = await paymentRepository.GetByIdAsync(id, cancellationToken);
+            var payment = await _paymentRepository.GetByIdAsync(id, cancellationToken);
             if (payment == null)
             {
                 return Result<PaymentResponse>.Failure("Payment not found");
             }
 
-            var paymentResponse = mapper.Map<PaymentResponse>(payment);
+            var paymentResponse = _mapper.Map<PaymentResponse>(payment);
             return Result<PaymentResponse>.Success(paymentResponse);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting payment by ID {PaymentId}", id);
+            _logger.LogError(ex, "Error getting payment by ID {PaymentId}", id);
             return Result<PaymentResponse>.Failure($"Error retrieving payment: {ex.Message}");
         }
     }
@@ -40,18 +60,18 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
     {
         try
         {
-            var payment = await paymentRepository.GetByOrderIdAsync(orderId, cancellationToken);
+            var payment = await _paymentRepository.GetByOrderIdAsync(orderId, cancellationToken);
             if (payment == null)
             {
                 return Result<PaymentResponse>.Failure("Payment not found for order");
             }
 
-            var paymentResponse = mapper.Map<PaymentResponse>(payment);
+            var paymentResponse = _mapper.Map<PaymentResponse>(payment);
             return Result<PaymentResponse>.Success(paymentResponse);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting payment by order ID {OrderId}", orderId);
+            _logger.LogError(ex, "Error getting payment by order ID {OrderId}", orderId);
             return Result<PaymentResponse>.Failure($"Error retrieving payment: {ex.Message}");
         }
     }
@@ -60,13 +80,13 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
     {
         try
         {
-            var payments = await paymentRepository.GetByUserIdAsync(userId, cancellationToken);
-            var paymentResponses = mapper.Map<IEnumerable<PaymentResponse>>(payments);
+            var payments = await _paymentRepository.GetByUserIdAsync(userId, cancellationToken);
+            var paymentResponses = _mapper.Map<IEnumerable<PaymentResponse>>(payments);
             return Result<IEnumerable<PaymentResponse>>.Success(paymentResponses);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting payments by user ID {UserId}", userId);
+            _logger.LogError(ex, "Error getting payments by user ID {UserId}", userId);
             return Result<IEnumerable<PaymentResponse>>.Failure($"Error retrieving payments: {ex.Message}");
         }
     }
@@ -75,8 +95,6 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
     {
         try
         {
-            StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
-            
             var lineItems = new List<SessionLineItemOptions>();
 
             foreach (var item in request.LineItems)
@@ -96,7 +114,7 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
                 });
             }
 
-            var domain = "http://localhost:3000";
+            var domain = _frontendUrl;
             var options = new SessionCreateOptions
             {
                 PaymentMethodTypes = new List<string> { "card" },
@@ -112,8 +130,7 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
                 }
             };
 
-            var service = new SessionService();
-            Session session = await service.CreateAsync(options);
+            var session = await _stripeWrapper.CreateCheckoutSessionAsync(options);
 
             return Result<CheckoutSessionResponse>.Success(new CheckoutSessionResponse 
             { 
@@ -123,7 +140,7 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating Stripe session for user {UserId}", userId);
+            _logger.LogError(ex, "Error creating Stripe session for user {UserId}", userId);
             return Result<CheckoutSessionResponse>.Failure(ex.Message);
         }
     }
@@ -132,18 +149,18 @@ public class PaymentService(IPaymentRepository paymentRepository, IMapper mapper
     {
         try
         {
-            var payment = mapper.Map<Payment>(request);
+            var payment = _mapper.Map<Payment>(request);
             payment.CreatedAt = DateTime.UtcNow;
             payment.UpdatedAt = DateTime.UtcNow;
 
-            await paymentRepository.AddAsync(payment, cancellationToken);
+            await _paymentRepository.AddAsync(payment, cancellationToken);
 
-            var paymentResponse = mapper.Map<PaymentResponse>(payment);
+            var paymentResponse = _mapper.Map<PaymentResponse>(payment);
             return Result<PaymentResponse>.Success(paymentResponse);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating payment for order {OrderId}", request.OrderId);
+            _logger.LogError(ex, "Error creating payment for order {OrderId}", request.OrderId);
             return Result<PaymentResponse>.Failure($"Error creating payment: {ex.Message}");
         }
     }

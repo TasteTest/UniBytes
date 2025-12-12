@@ -23,6 +23,7 @@ public class StripeService : IStripeService
     private readonly IOrderService _orderService;
     private readonly IMapper _mapper;
     private readonly ILogger<StripeService> _logger;
+    private readonly IStripeServiceWrapper _stripeWrapper;
     private readonly string _webhookSecret;
 
     public StripeService(
@@ -32,6 +33,7 @@ public class StripeService : IStripeService
         IOrderService orderService,
         IMapper mapper,
         ILogger<StripeService> logger,
+        IStripeServiceWrapper stripeWrapper,
         IConfiguration configuration)
     {
         _paymentRepository = paymentRepository;
@@ -40,25 +42,12 @@ public class StripeService : IStripeService
         _orderService = orderService;
         _mapper = mapper;
         _logger = logger;
+        _stripeWrapper = stripeWrapper;
 
-        // Read Stripe keys from environment variables first, then configuration
+        // Read webhook secret from environment variables first, then configuration
         _webhookSecret = Environment.GetEnvironmentVariable("Stripe__WebhookSecret")
                          ?? configuration["Stripe:WebhookSecret"]
                          ?? string.Empty;
-        
-        // Set Stripe API key (check environment variables first, then configuration)
-        var stripeSecretKey = Environment.GetEnvironmentVariable("Stripe__SecretKey")
-            ?? configuration["Stripe:SecretKey"];
-        
-        if (string.IsNullOrEmpty(stripeSecretKey))
-        {
-            _logger.LogWarning("Stripe secret key not configured. Please set Stripe__SecretKey environment variable or Stripe:SecretKey in appsettings.");
-        }
-        else
-        {
-            StripeConfiguration.ApiKey = stripeSecretKey;
-            _logger.LogInformation("Stripe API key configured (last 10 chars: {LastChars})", stripeSecretKey.Substring(Math.Max(0, stripeSecretKey.Length - 10)));
-        }
     }
 
     public async Task<Result<CheckoutSessionResponse>> CreateCheckoutSessionAsync(
@@ -166,8 +155,7 @@ public class StripeService : IStripeService
             };
 
             // Create the session
-            var service = new SessionService();
-            var session = await service.CreateAsync(sessionOptions, cancellationToken: cancellationToken);
+            var session = await _stripeWrapper.CreateCheckoutSessionAsync(sessionOptions, cancellationToken);
 
             // Update payment with Stripe session ID
             payment.ProviderPaymentId = session.Id;
@@ -217,7 +205,7 @@ public class StripeService : IStripeService
     {
         try
         {
-            var stripeEvent = EventUtility.ConstructEvent(json, stripeSignature, _webhookSecret);
+            var stripeEvent = _stripeWrapper.ConstructWebhookEvent(json, stripeSignature, _webhookSecret);
 
             _logger.LogInformation("Processing Stripe webhook event: {EventType}", stripeEvent.Type);
 
@@ -270,8 +258,7 @@ public class StripeService : IStripeService
     {
         try
         {
-            var sessionService = new SessionService();
-            var session = await sessionService.GetAsync(sessionId, cancellationToken: cancellationToken);
+            var session = await _stripeWrapper.GetCheckoutSessionAsync(sessionId, cancellationToken);
 
             var payment = await _paymentRepository.GetByProviderPaymentIdAsync(sessionId, cancellationToken);
             if (payment == null)

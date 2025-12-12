@@ -418,5 +418,94 @@ public class OAuthProviderServiceTests
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Contain("Error creating OAuth provider");
     }
+
+    [Fact]
+    public async Task GetByUserIdAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        _mockOAuthProviderRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _oauthProviderService.GetByUserIdAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving OAuth providers");
+    }
+
+    [Fact]
+    public async Task GetByProviderAndProviderIdAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var provider = OAuthProviderType.Google;
+        var providerId = "google123";
+        _mockOAuthProviderRepository.Setup(x => x.GetByProviderAndProviderIdAsync(provider, providerId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _oauthProviderService.GetByProviderAndProviderIdAsync(provider, providerId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error retrieving OAuth provider");
+    }
+
+    [Fact]
+    public async Task GetByProviderAndProviderIdAsync_NotFound_ReturnsFailure()
+    {
+        // Arrange
+        var provider = OAuthProviderType.Google;
+        var providerId = "nonexistent";
+        _mockOAuthProviderRepository.Setup(x => x.GetByProviderAndProviderIdAsync(provider, providerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OAuthProvider?)null);
+
+        // Act
+        var result = await _oauthProviderService.GetByProviderAndProviderIdAsync(provider, providerId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain($"OAuth provider {provider} with ID {providerId} not found");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var providerId = Guid.NewGuid();
+        var updateRequest = new UpdateOAuthProviderRequest();
+
+        _mockOAuthProviderRepository.Setup(x => x.GetByIdAsync(providerId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _oauthProviderService.UpdateAsync(providerId, updateRequest);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error updating OAuth provider");
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        var providerId = Guid.NewGuid();
+        _mockOAuthProviderRepository.Setup(x => x.GetByIdAsync(providerId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _oauthProviderService.DeleteAsync(providerId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Error deleting OAuth provider");
+    }
 }
 
