@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using backend.DTOs.User.Response;
 
 namespace backend.DTOs.Auth.Response;
@@ -7,9 +8,11 @@ namespace backend.DTOs.Auth.Response;
 /// </summary>
 public class AuthResponse
 {
+    /// <summary>Internal use only - not serialized to JSON</summary>
+    [JsonIgnore]
     public string UserId { get; init; } = string.Empty;
+    
     public UserResponse User { get; init; } = null!;
     public bool IsNewUser { get; init; }
     public string Message { get; init; } = string.Empty;
 }
-

@@ -26,7 +26,6 @@ export interface CreateCheckoutSessionRequest {
 export interface CheckoutSessionResponse {
   sessionId: string
   sessionUrl: string
-  paymentId: string
   message: string
 }
 
@@ -44,9 +43,6 @@ export enum PaymentProvider {
 }
 
 export interface Payment {
-  id: string
-  orderId?: string
-  userId?: string
   amount: number
   currency: string
   provider: PaymentProvider

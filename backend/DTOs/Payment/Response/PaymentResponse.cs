@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using backend.Common.Enums;
 
 namespace backend.DTOs.Payment.Response;
@@ -7,9 +8,18 @@ namespace backend.DTOs.Payment.Response;
 /// </summary>
 public class PaymentResponse
 {
+    /// <summary>Internal use only - not serialized to JSON</summary>
+    [JsonIgnore]
     public Guid Id { get; init; }
+    
+    /// <summary>Internal use only - not serialized to JSON</summary>
+    [JsonIgnore]
     public Guid? OrderId { get; init; }
+    
+    /// <summary>Internal use only - not serialized to JSON</summary>
+    [JsonIgnore]
     public Guid? UserId { get; init; }
+    
     public decimal Amount { get; init; }
     public string Currency { get; init; } = "USD";
     public PaymentProvider Provider { get; init; }

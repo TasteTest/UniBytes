@@ -34,7 +34,7 @@ function CheckoutSuccessContent() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session_id")
   const { clearCart } = useCartStore()
-  
+
   const [isVerifying, setIsVerifying] = useState(true)
   const [payment, setPayment] = useState<Payment | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +49,7 @@ function CheckoutSuccessContent() {
 
       try {
         const result = await paymentService.verifyPayment(sessionId)
-        
+
         if (result.isSuccess && result.data) {
           setPayment(result.data)
           // Clear cart on successful payment
@@ -120,16 +120,6 @@ function CheckoutSuccessContent() {
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-muted p-4 space-y-2 text-left">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Payment ID:</span>
-              <span className="font-mono">{payment.id.slice(0, 8)}...</span>
-            </div>
-            {payment.orderId && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Order ID:</span>
-                <span className="font-mono">{payment.orderId.slice(0, 8)}...</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Amount:</span>
               <span className="font-semibold">
                 ${payment.amount.toFixed(2)} {payment.currency.toUpperCase()}
@@ -140,6 +130,10 @@ function CheckoutSuccessContent() {
               <span className="font-semibold text-green-600 dark:text-green-400">
                 Succeeded
               </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Payment Provider:</span>
+              <span className="font-semibold">Stripe</span>
             </div>
           </div>
 

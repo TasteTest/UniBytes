@@ -300,8 +300,6 @@ public class OrderService(
         Metadata = order.Metadata,
         OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
         {
-            Id = oi.Id,
-            MenuItemId = oi.MenuItemId,
             Name = oi.Name,
             UnitPrice = oi.UnitPrice,
             Quantity = oi.Quantity,

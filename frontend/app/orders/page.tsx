@@ -11,21 +11,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface BackendOrderResponse {
-    id: string;
-    userId: string;
     externalUserRef?: string;
     totalAmount: number;
     currency: string;
     paymentStatus: string;
-    orderStatus: string;    
+    orderStatus: string;
     createdAt: string;
     metadata?: any;
     orderItems: BackendOrderItem[];
 }
 
 interface BackendOrderItem {
-    id: string;
-    menuItemId?: string;
     name: string;
     unitPrice: number;
     quantity: number;
@@ -34,7 +30,7 @@ interface BackendOrderItem {
 }
 
 interface Order {
-    id: string;
+    orderIndex: number; // Sequential order number for display
     status: string;
     createdAt: string;
     total: number;
@@ -102,8 +98,8 @@ export default function OrdersPage() {
                 }
 
                 const rawData: BackendOrderResponse[] = await response.json();
-                const mappedOrders: Order[] = rawData.map(order => ({
-                    id: order.id,
+                const mappedOrders: Order[] = rawData.map((order, index) => ({
+                    orderIndex: rawData.length - index, // Most recent = highest number
                     status: order.orderStatus.toLowerCase(),
                     createdAt: order.createdAt,
                     total: order.totalAmount,
@@ -139,7 +135,7 @@ export default function OrdersPage() {
                     <div className="flex items-start justify-between">
                         <div>
                             <CardTitle className="flex items-center gap-2">
-                                Order #{order.id.substring(0, 8)}...
+                                Order {order.orderIndex}
                                 <Badge
                                     variant={order.status === "ready" ? "default" : "secondary"}
                                     className="ml-2"
@@ -277,7 +273,7 @@ export default function OrdersPage() {
 
                 <TabsContent value="active" className="space-y-4">
                     {activeOrders.length > 0 ? (
-                        activeOrders.map((order) => <OrderCard key={order.id} order={order} />)
+                        activeOrders.map((order) => <OrderCard key={order.orderIndex} order={order} />)
                     ) : (
                         <Card className="card-glass border-none">
                             <CardContent className="py-12 text-center">
@@ -290,7 +286,7 @@ export default function OrdersPage() {
 
                 <TabsContent value="past" className="space-y-4">
                     {pastOrders.length > 0 ? (
-                        pastOrders.map((order) => <OrderCard key={order.id} order={order} />)
+                        pastOrders.map((order) => <OrderCard key={order.orderIndex} order={order} />)
                     ) : (
                         <Card className="card-glass border-none">
                             <CardContent className="py-12 text-center">

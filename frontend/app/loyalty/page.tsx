@@ -31,14 +31,14 @@ export default function LoyaltyPage() {
     try {
       setLoading(true)
       const response = await loyaltyService.getOrCreateAccount(userId)
-      
+
       if (!response.isSuccess) {
         throw new Error(response.error || "Failed to load account")
       }
 
       // Get full details
       const detailsResponse = await loyaltyService.getAccountDetails(userId)
-      
+
       if (detailsResponse.isSuccess && detailsResponse.data) {
         setAccountDetails(detailsResponse.data)
       }
@@ -67,7 +67,7 @@ export default function LoyaltyPage() {
 
     try {
       setRedeeming(rewardId)
-      
+
       const reward = AVAILABLE_REWARDS.find(r => r.id === rewardId)
       if (!reward) return
 
@@ -247,13 +247,12 @@ export default function LoyaltyPage() {
           {AVAILABLE_REWARDS.map((reward) => {
             const canRedeem = currentPoints >= reward.pointsRequired
             const isRedeeming = redeeming === reward.id
-            
+
             return (
               <Card
                 key={reward.id}
-                className={`card-glass border-none ${
-                  canRedeem ? "ring-2 ring-primary" : ""
-                }`}
+                className={`card-glass border-none ${canRedeem ? "ring-2 ring-primary" : ""
+                  }`}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -280,8 +279,8 @@ export default function LoyaltyPage() {
                       <span className="font-bold">{reward.pointsRequired}</span>
                       <span className="text-sm text-muted-foreground">points</span>
                     </div>
-                    <Button 
-                      disabled={!canRedeem || isRedeeming} 
+                    <Button
+                      disabled={!canRedeem || isRedeeming}
                       size="sm"
                       onClick={() => handleRedeem(reward.id, reward.pointsRequired, reward.name)}
                     >
@@ -340,7 +339,7 @@ export default function LoyaltyPage() {
               {accountDetails.recentRedemptions.slice(0, 5).map((redemption, index) => {
                 const metadata = JSON.parse(redemption.rewardMetadata || '{}')
                 return (
-                  <div key={redemption.id}>
+                  <div key={index}>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">

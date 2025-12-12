@@ -11,8 +11,6 @@ import { useToast } from "@/hooks/use-toast"
 import { formatTime, formatCurrency } from "@/lib/utils"
 
 interface KitchenOrderItem {
-  id: string
-  menuItemId?: string
   name: string
   unitPrice: number
   quantity: number
@@ -21,8 +19,8 @@ interface KitchenOrderItem {
 }
 
 interface KitchenOrder {
-  id: string
-  userId: string
+  id: string // Used for API calls only, not displayed
+  orderIndex: number // Sequential number for display
   totalAmount: number
   currency: string
   paymentStatus: string
@@ -78,10 +76,15 @@ export default function KitchenPage() {
       const res = await fetch(`${apiBase}/orders`)
       if (!res.ok) throw new Error("Failed to fetch orders")
       const data: KitchenOrder[] = await res.json()
-      const active = data.filter((o) => {
-        const s = (o.orderStatus || "").toString().toLowerCase()
-        return s !== "cancelled" && s !== "failed" && s !== "completed"
-      })
+      const active = data
+        .filter((o: any) => {
+          const s = (o.orderStatus || "").toString().toLowerCase()
+          return s !== "cancelled" && s !== "failed" && s !== "completed"
+        })
+        .map((o: any, index: number, arr: any[]) => ({
+          ...o,
+          orderIndex: arr.length - index,
+        }))
       setOrders(active)
       setError(null)
     } catch (err) {
@@ -98,7 +101,7 @@ export default function KitchenPage() {
     return () => clearInterval(id)
   }, [])
 
-  const updateOrderStatus = async (orderId: string, newStatus: "pending" | "preparing" | "ready" | "completed") => {
+  const updateOrderStatus = async (orderId: string, orderIndex: number, newStatus: "pending" | "preparing" | "ready" | "completed") => {
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL
       if (!apiBase) throw new Error("API base URL not configured")
@@ -111,7 +114,7 @@ export default function KitchenPage() {
       if (!res.ok) throw new Error("Failed to update")
 
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus.charAt(0).toUpperCase() + newStatus.slice(1) } : o)))
-      toast({ title: "Order updated", description: `Order status changed to ${newStatus}` })
+      toast({ title: "Order updated", description: `Order ${orderIndex} status changed to ${newStatus}` })
       fetchOrders()
     } catch (err) {
       console.error("Error updating order:", err)
@@ -137,7 +140,7 @@ export default function KitchenPage() {
           <div className="flex items-start justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                Order #{order.id.substring(0, 8).toUpperCase()}
+                Order {order.orderIndex}
                 <Badge className={statusColors[kitchenStatus]}>{kitchenStatus.charAt(0).toUpperCase() + kitchenStatus.slice(1)}</Badge>
                 <Badge variant="outline">{station.toUpperCase()}</Badge>
               </CardTitle>
@@ -149,7 +152,7 @@ export default function KitchenPage() {
         <CardContent className="space-y-4">
           <div>
             {order.orderItems.map((item, index) => (
-              <div key={item.id} className="mb-2">
+              <div key={index} className="mb-2">
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="mt-0.5">{item.quantity}x</Badge>
                   <div className="flex-1">
@@ -172,13 +175,13 @@ export default function KitchenPage() {
 
           <div className="flex gap-2">
             {kitchenStatus === "pending" && (
-              <Button onClick={() => updateOrderStatus(order.id, "preparing")} className="flex-1">
+              <Button onClick={() => updateOrderStatus(order.id, order.orderIndex, "preparing")} className="flex-1">
                 <ChefHat className="h-4 w-4 mr-2" /> Start Preparing
               </Button>
             )}
 
             {kitchenStatus === "preparing" && (
-              <Button onClick={() => updateOrderStatus(order.id, "ready")} className="flex-1" variant="default">
+              <Button onClick={() => updateOrderStatus(order.id, order.orderIndex, "ready")} className="flex-1" variant="default">
                 <CheckCircle className="h-4 w-4 mr-2" /> Mark as Ready
               </Button>
             )}
@@ -186,7 +189,7 @@ export default function KitchenPage() {
             {kitchenStatus === "ready" && (
               <>
                 <div className="flex-1 text-center py-2 text-green-600 font-semibold">✓ Ready for Pickup</div>
-                <Button onClick={() => updateOrderStatus(order.id, "completed")} variant="outline" size="sm">Complete</Button>
+                <Button onClick={() => updateOrderStatus(order.id, order.orderIndex, "completed")} variant="outline" size="sm">Complete</Button>
               </>
             )}
           </div>
@@ -282,7 +285,7 @@ export default function KitchenPage() {
         {["all", "grill", "salad", "pizza", "drinks", "general"].map((station) => (
           <TabsContent key={station} value={station} className="space-y-4">
             {filterByStation(station).length > 0 ? (
-              filterByStation(station).map((order) => <OrderCard key={order.id} order={order} />)
+              filterByStation(station).map((order) => <OrderCard key={order.orderIndex} order={order} />)
             ) : (
               <Card className="card-glass border-none">
                 <CardContent className="py-12 text-center">

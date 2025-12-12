@@ -10,8 +10,6 @@ export enum LoyaltyTier {
 }
 
 export interface LoyaltyAccount {
-  id: string
-  userId: string
   pointsBalance: number
   tier: LoyaltyTier
   tierName: string
@@ -21,18 +19,13 @@ export interface LoyaltyAccount {
 }
 
 export interface LoyaltyTransaction {
-  id: string
-  loyaltyAccountId: string
   changeAmount: number
   reason: string
-  referenceId: string | null
   metadata: string
   createdAt: string
 }
 
 export interface LoyaltyRedemption {
-  id: string
-  loyaltyAccountId: string
   pointsUsed: number
   rewardType: string
   rewardMetadata: string
