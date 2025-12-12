@@ -55,7 +55,7 @@ export default function MenuPage() {
         if (!apiBase) {
           throw new Error("API base URL not configured")
         }
-        
+
         // Fetch categories and menu items in parallel
         const [categoriesRes, menuItemsRes] = await Promise.all([
           fetch(`${apiBase}/categories`),
@@ -80,6 +80,7 @@ export default function MenuPage() {
             name: item.name,
             description: item.description || '',
             price: item.price,
+            currency: item.currency || 'RON',
             category: categoryMap.get(item.categoryId) || 'Other',
             available: item.available,
             image: item.imageUrl || undefined,
@@ -229,31 +230,31 @@ export default function MenuPage() {
                 </Badge>
               </div>
               <CardHeader className="pb-0">
-                  <CardTitle className="group-hover:text-primary transition-colors">
-                    {item.name}
-                  </CardTitle>
+                <CardTitle className="group-hover:text-primary transition-colors">
+                  {item.name}
+                </CardTitle>
                 <CardDescription className="mt-1 line-clamp-2">{item.description}</CardDescription>
-            </CardHeader>
+              </CardHeader>
               <CardContent className="pt-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>⏱️ {item.preparationTime} min</span>
-              </div>
-            </CardContent>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>⏱️ {item.preparationTime} min</span>
+                </div>
+              </CardContent>
               <CardFooter className="mt-auto flex items-center justify-between pt-2">
-              <span className="text-2xl font-bold text-primary">
-                {formatCurrency(item.price)}
-              </span>
-              <Button
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleAddToCart(item)
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </CardFooter>
+                <span className="text-2xl font-bold text-primary">
+                  {formatCurrency(item.price)}
+                </span>
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddToCart(item)
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </CardFooter>
             </div>
           </Card>
         ))}

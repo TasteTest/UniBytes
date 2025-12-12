@@ -94,18 +94,19 @@ public class MenuService(
         return Result.Success();
     }
 
-    private static MenuItemResponseDto MapToDto(MenuItem item) => new(
-        item.Id,
-        item.CategoryId,
-        item.Name,
-        item.Description,
-        item.Price,
-        item.Currency,
-        item.Available,
-        item.Visibility,
-        item.Components,
-        item.ImageUrl,
-        item.CreatedAt,
-        item.UpdatedAt
-    );
+    private static MenuItemResponseDto MapToDto(MenuItem item) => new()
+    {
+        Id = item.Id,
+        CategoryId = item.CategoryId,
+        Name = item.Name,
+        Description = item.Description,
+        Price = item.Price,
+        Currency = item.Currency,
+        Available = item.Available,
+        Visibility = item.Visibility,
+        Components = item.Components,
+        ImageUrl = item.ImageUrl,
+        CreatedAt = item.CreatedAt,
+        UpdatedAt = item.UpdatedAt
+    };
 }

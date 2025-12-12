@@ -31,14 +31,14 @@ export default function LoyaltyPage() {
     try {
       setLoading(true)
       const response = await loyaltyService.getOrCreateAccount(userId)
-      
+
       if (!response.isSuccess) {
         throw new Error(response.error || "Failed to load account")
       }
 
       // Get full details
       const detailsResponse = await loyaltyService.getAccountDetails(userId)
-      
+
       if (detailsResponse.isSuccess && detailsResponse.data) {
         setAccountDetails(detailsResponse.data)
       }
@@ -67,7 +67,7 @@ export default function LoyaltyPage() {
 
     try {
       setRedeeming(rewardId)
-      
+
       const reward = AVAILABLE_REWARDS.find(r => r.id === rewardId)
       if (!reward) return
 
@@ -153,15 +153,24 @@ export default function LoyaltyPage() {
     ? (currentPoints / nextReward.pointsRequired) * 100
     : 100
 
-  // Get recent transactions (earned points)
+  // Get recent transactions (earned points) - clean up descriptions to remove IDs
   const recentActivity = accountDetails.recentTransactions
     .filter(t => t.changeAmount > 0)
     .slice(0, 5)
-    .map(t => ({
-      date: new Date(t.createdAt).toLocaleDateString(),
-      description: t.reason,
-      points: `+${t.changeAmount}`,
-    }))
+    .map((t, index) => {
+      // Clean up the reason to remove any IDs (GUIDs)
+      let description = t.reason || "Points earned"
+      // Remove GUID patterns from the description
+      description = description.replace(/:\s*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
+      description = description.trim() || "Order completion"
+
+      return {
+        date: new Date(t.createdAt).toLocaleDateString(),
+        description,
+        points: `+${t.changeAmount}`,
+      }
+    })
+
 
   return (
     <div className="container py-8 max-w-4xl">
@@ -212,7 +221,7 @@ export default function LoyaltyPage() {
               </div>
               <h3 className="font-semibold mb-1">Order Food</h3>
               <p className="text-sm text-muted-foreground">
-                Earn 10 points for every $1 spent
+                Earn 10 points for every 1 RON spent
               </p>
             </div>
             <div className="text-center">
@@ -247,13 +256,12 @@ export default function LoyaltyPage() {
           {AVAILABLE_REWARDS.map((reward) => {
             const canRedeem = currentPoints >= reward.pointsRequired
             const isRedeeming = redeeming === reward.id
-            
+
             return (
               <Card
                 key={reward.id}
-                className={`card-glass border-none ${
-                  canRedeem ? "ring-2 ring-primary" : ""
-                }`}
+                className={`card-glass border-none ${canRedeem ? "ring-2 ring-primary" : ""
+                  }`}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -280,8 +288,8 @@ export default function LoyaltyPage() {
                       <span className="font-bold">{reward.pointsRequired}</span>
                       <span className="text-sm text-muted-foreground">points</span>
                     </div>
-                    <Button 
-                      disabled={!canRedeem || isRedeeming} 
+                    <Button
+                      disabled={!canRedeem || isRedeeming}
                       size="sm"
                       onClick={() => handleRedeem(reward.id, reward.pointsRequired, reward.name)}
                     >
@@ -340,7 +348,7 @@ export default function LoyaltyPage() {
               {accountDetails.recentRedemptions.slice(0, 5).map((redemption, index) => {
                 const metadata = JSON.parse(redemption.rewardMetadata || '{}')
                 return (
-                  <div key={redemption.id}>
+                  <div key={index}>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">

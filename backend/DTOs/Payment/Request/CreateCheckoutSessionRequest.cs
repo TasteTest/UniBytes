@@ -27,6 +27,7 @@ public class CheckoutLineItem
     public string? Description { get; init; }
     public decimal UnitPrice { get; init; }
     public int Quantity { get; init; }
+    public string Currency { get; init; } = "ron";
     public string? ImageUrl { get; init; }
     public JsonElement? Modifiers { get; init; }
 }

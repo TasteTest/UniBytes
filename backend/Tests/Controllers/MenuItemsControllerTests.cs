@@ -66,7 +66,21 @@ public class MenuItemsControllerTests
     {
         // Arrange
         var itemId = Guid.NewGuid();
-        var item = new MenuItemResponseDto(itemId, Guid.NewGuid(), "Item", "Desc", 10m, "USD", true, 0, null, null, DateTime.UtcNow, DateTime.UtcNow);
+        var item = new MenuItemResponseDto
+        {
+            Id = itemId,
+            CategoryId = Guid.NewGuid(),
+            Name = "Item",
+            Description = "Desc",
+            Price = 10m,
+            Currency = "USD",
+            Available = true,
+            Visibility = 0,
+            Components = null,
+            ImageUrl = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
         
         _mockMenuService.Setup(x => x.GetMenuItemByIdAsync(itemId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<MenuItemResponseDto>.Success(item));
@@ -114,7 +128,21 @@ public class MenuItemsControllerTests
     {
         // Arrange
         var dto = new CreateMenuItemDto(Guid.NewGuid(), "Item", "Desc", 10m, "USD", true, null);
-        var item = new MenuItemResponseDto(Guid.NewGuid(), dto.CategoryId, dto.Name, dto.Description, dto.Price, dto.Currency, dto.Available, 0, null, null, DateTime.UtcNow, DateTime.UtcNow);
+        var item = new MenuItemResponseDto
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = dto.CategoryId,
+            Name = dto.Name,
+            Description = dto.Description,
+            Price = dto.Price,
+            Currency = dto.Currency,
+            Available = dto.Available,
+            Visibility = 0,
+            Components = null,
+            ImageUrl = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
         
         _mockMenuService.Setup(x => x.CreateMenuItemAsync(dto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<MenuItemResponseDto>.Success(item));

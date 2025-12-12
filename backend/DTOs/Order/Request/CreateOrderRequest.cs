@@ -8,6 +8,6 @@ namespace backend.DTOs.Order.Request;
 public record CreateOrderRequest(
     Guid UserId,
     List<CreateOrderItemRequest> OrderItems,
-    string Currency = "RON",
+    string Currency = "ron",
     JsonElement? Metadata = null
 );

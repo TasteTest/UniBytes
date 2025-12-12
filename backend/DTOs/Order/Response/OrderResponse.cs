@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace backend.DTOs.Order.Response;
 
@@ -7,8 +8,13 @@ namespace backend.DTOs.Order.Response;
 /// </summary>
 public class OrderResponse
 {
+    /// <summary>Order identifier for API operations</summary>
     public Guid Id { get; set; }
+    
+    /// <summary>Internal use only - not serialized to JSON</summary>
+    [JsonIgnore]
     public Guid UserId { get; set; }
+    
     public string? ExternalUserRef { get; set; }
     public decimal TotalAmount { get; set; }
     public required string Currency { get; set; }
@@ -24,8 +30,6 @@ public class OrderResponse
 /// </summary>
 public class OrderItemResponse
 {
-    public Guid Id { get; set; }
-    public Guid? MenuItemId { get; set; }
     public required string Name { get; set; }
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; }

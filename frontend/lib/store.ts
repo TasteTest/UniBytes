@@ -5,6 +5,7 @@ export interface MenuItem {
   name: string
   description: string
   price: number
+  currency: string
   category: string
   image?: string
   available: boolean
@@ -40,8 +41,8 @@ export const useCartStore = create<CartStore>()((set, get) => ({
   addItem: (item) =>
     set((state) => {
       const existingItem = state.items.find(
-        (i) => i.id === item.id && 
-        JSON.stringify(i.modifiers) === JSON.stringify(item.modifiers)
+        (i) => i.id === item.id &&
+          JSON.stringify(i.modifiers) === JSON.stringify(item.modifiers)
       )
       if (existingItem) {
         return {
@@ -66,7 +67,7 @@ export const useCartStore = create<CartStore>()((set, get) => ({
   getTotal: () => {
     const items = get().items
     return items.reduce((total, item) => {
-      const itemTotal = item.menuItem.price + 
+      const itemTotal = item.menuItem.price +
         item.modifiers.reduce((sum, mod) => sum + mod.price, 0)
       return total + itemTotal * item.quantity
     }, 0)

@@ -7,6 +7,7 @@ import os
 import random
 import requests
 import json
+import mimetypes
 from typing import Dict, List, Iterator, Optional, Tuple
 
 # API base URL (required). Provide via BACKEND_URL env var, e.g.
@@ -15,8 +16,9 @@ BACKEND_URL = os.getenv("BACKEND_URL", "").rstrip("/")
 if not BACKEND_URL:
     raise SystemExit("Please set BACKEND_URL env var pointing to the backend /api base (e.g. https://.../api)")
 
-# Image directory containing menu item images (default: current folder)
-IMAGE_DIR = os.getenv("IMAGE_DIR", os.path.dirname(__file__))
+# Image directory containing menu item images (default: scripts/images next to this script)
+DEFAULT_IMAGE_DIR = os.path.join(os.path.dirname(__file__), "images")
+IMAGE_DIR = os.getenv("IMAGE_DIR", DEFAULT_IMAGE_DIR)
 
 
 def list_image_files(directory: str) -> List[str]:
@@ -32,7 +34,9 @@ def list_image_files(directory: str) -> List[str]:
 def upload_image(menu_item_id: str, image_path: str):
     """Upload image for a given menu item"""
     with open(image_path, "rb") as f:
-        files = {"image": (os.path.basename(image_path), f, "image/png")}
+        mime_type, _ = mimetypes.guess_type(image_path)
+        content_type = mime_type or "application/octet-stream"
+        files = {"image": (os.path.basename(image_path), f, content_type)}
         try:
             resp = requests.post(
                 f"{BACKEND_URL}/menuitems/{menu_item_id}/image",
@@ -144,9 +148,15 @@ def create_categories() -> Dict[str, str]:
 def create_menu_items(category_map: Dict[str, str]):
     """Create menu items using the category mapping"""
     print("\nCreating menu items...")
-    images = list_image_files(IMAGE_DIR)
+    # Ensure IMAGE_DIR exists and list images
+    images = []
+    try:
+        images = list_image_files(IMAGE_DIR)
+    except FileNotFoundError:
+        images = []
+
     if not images:
-        print("⚠ No images found; items will be created without images.")
+        print(f"⚠ No images found in '{IMAGE_DIR}'; items will be created without images.")
 
     for category_name, items in MENU_ITEMS.items():
         category_id = category_map.get(category_name)
@@ -161,7 +171,7 @@ def create_menu_items(category_map: Dict[str, str]):
                 "name": item["name"],
                 "description": item["description"],
                 "price": item["price"],
-                "currency": "USD",
+                "currency": "ron",
                 "available": True,
                 "components": None
             }
@@ -174,14 +184,30 @@ def create_menu_items(category_map: Dict[str, str]):
                 )
                 
                 if response.status_code == 201:
-                    created = response.json()
-                    print(f"✓ Created menu item: {item['name']} (ID: {created['id']})")
-                    # Try to upload an image if available
-                    if images:
-                        image_path = random.choice(images)
-                        upload_image(created["id"], image_path)
+                    # API may or may not include the created entity's ID in the JSON body.
+                    menu_id = None
+                    try:
+                        created = response.json()
+                        menu_id = created.get("id") if isinstance(created, dict) else None
+                    except Exception:
+                        created = None
+
+                    # Fallback: parse Location header for the new resource ID
+                    if not menu_id:
+                        location = response.headers.get("Location") or response.headers.get("location")
+                        if location:
+                            menu_id = location.rstrip("/").split("/")[-1]
+
+                    if menu_id:
+                        print(f"✓ Created menu item: {item['name']} (ID: {menu_id})")
+                        # Try to upload an image if available
+                        if images:
+                            image_path = random.choice(images)
+                            upload_image(menu_id, image_path)
+                        else:
+                            print(f"  ⚠ No image available for {item['name']}")
                     else:
-                        print(f"  ⚠ No image available for {item['name']}")
+                        print(f"✓ Created menu item: {item['name']} (ID: unknown) - missing id in response")
                 else:
                     print(f"✗ Failed to create menu item {item['name']}: {response.status_code}")
                     print(f"  Response: {response.text[:500]}")  # Limit output

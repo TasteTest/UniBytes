@@ -13,7 +13,7 @@ public class LoyaltyMappingProfile : Profile
 {
     public LoyaltyMappingProfile()
     {
-        // LoyaltyAccount mappings
+        // LoyaltyAccount mappings - ignore removed ID fields
         CreateMap<LoyaltyAccount, LoyaltyAccountResponse>()
             .ForMember(dest => dest.TierName, opt => opt.MapFrom(src => src.Tier.ToString()));
 
@@ -29,10 +29,10 @@ public class LoyaltyMappingProfile : Profile
             .ForMember(dest => dest.Tier, opt => opt.MapFrom(src => src.Tier.HasValue ? (LoyaltyTier)src.Tier.Value : default))
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
-        // LoyaltyTransaction mappings
+        // LoyaltyTransaction mappings - ignore removed ID fields
         CreateMap<LoyaltyTransaction, LoyaltyTransactionResponse>();
 
-        // LoyaltyRedemption mappings
+        // LoyaltyRedemption mappings - ignore removed ID fields
         CreateMap<LoyaltyRedemption, LoyaltyRedemptionResponse>();
     }
 }

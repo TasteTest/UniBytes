@@ -5,7 +5,6 @@
 import { User } from './user.types'
 
 export interface AuthResponse {
-  userId: string
   user: User
   isNewUser: boolean
   message: string
