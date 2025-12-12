@@ -1,5 +1,6 @@
 using backend.Services;
 using backend.Services.Interfaces;
+using backend.Services.Wrappers;
 
 namespace backend.Config;
 
@@ -18,10 +19,12 @@ public static class ServiceConfiguration
 
         // Payment services
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddSingleton<IStripeServiceWrapper, StripeServiceWrapper>();
         services.AddScoped<IStripeService, StripeService>();
 
         // Menu services
         services.AddScoped<IMenuService, MenuService>();
+        services.AddSingleton<IBlobContainerClientWrapper, BlobContainerClientWrapper>();
         services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 
         // Loyalty services

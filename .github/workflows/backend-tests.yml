@@ -27,7 +27,41 @@ jobs:
           cd backend
           dotnet build UniBytes.sln --configuration Release --no-restore
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: |
           cd backend
-          dotnet test UniBytes.sln --configuration Release --no-build --verbosity minimal
+          dotnet test UniBytes.sln --configuration Release --no-build --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults
+
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate Coverage Report
+        run: |
+          cd backend
+          reportgenerator \
+            -reports:./TestResults/**/coverage.cobertura.xml \
+            -targetdir:./TestResults/CoverageReport \
+            -reporttypes:TextSummary
+
+      - name: Check Coverage Threshold
+        run: |
+          cd backend
+          COVERAGE=$(grep -oP 'Line coverage: \K[\d.]+' ./TestResults/CoverageReport/Summary.txt)
+          echo "Current line coverage: ${COVERAGE}%"
+          
+          THRESHOLD=90
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo " Coverage ${COVERAGE}% is below threshold of ${THRESHOLD}%"
+            exit 1
+          else
+            echo " Coverage ${COVERAGE}% meets threshold of ${THRESHOLD}%"
+          fi
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: backend/TestResults/CoverageReport/

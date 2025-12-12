@@ -1,11 +1,8 @@
-using System.IO;
-using Azure;
-using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using backend.Common;
 using backend.Services;
+using backend.Services.Interfaces;
 using FluentAssertions;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -14,102 +11,299 @@ namespace Backend.Tests.Services;
 
 public class AzureBlobStorageServiceTests
 {
-    private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly Mock<IBlobContainerClientWrapper> _mockContainerWrapper;
     private readonly Mock<ILogger<AzureBlobStorageService>> _mockLogger;
     private readonly AzureBlobStorageService _blobStorageService;
 
     public AzureBlobStorageServiceTests()
     {
-        _mockConfiguration = new Mock<IConfiguration>();
+        _mockContainerWrapper = new Mock<IBlobContainerClientWrapper>();
         _mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
+        
+        // Default to configured state
+        _mockContainerWrapper.Setup(x => x.IsConfigured).Returns(true);
 
-        // Setup configuration mocks
-        _mockConfiguration.Setup(x => x["AzureStorage:ConnectionString"])
-            .Returns("UseDevelopmentStorage=true");
-        _mockConfiguration.Setup(x => x["AzureStorage:ContainerName"])
-            .Returns("test-container");
+        _blobStorageService = new AzureBlobStorageService(
+            _mockContainerWrapper.Object,
+            _mockLogger.Object);
     }
 
-    [Fact(Skip = "Integration test - requires Azure Storage Emulator running on localhost:10000")]
-    public void Constructor_ValidConfiguration_CreatesService()
-    {
-        // Act & Assert - should not throw
-        var act = () => new AzureBlobStorageService(_mockConfiguration.Object, _mockLogger.Object);
-        act.Should().NotThrow();
-    }
+    #region UploadImageAsync Tests
 
     [Fact]
-    public void Constructor_MissingConnectionString_ThrowsException()
+    public async Task UploadImageAsync_NotConfigured_ReturnsFailure()
     {
         // Arrange
-        var mockConfig = new Mock<IConfiguration>();
-        mockConfig.Setup(x => x["AzureStorage:ConnectionString"])
-            .Returns((string?)null);
-        mockConfig.Setup(x => x["AzureStorage:ContainerName"])
-            .Returns("test-container");
+        var mockWrapper = new Mock<IBlobContainerClientWrapper>();
+        mockWrapper.Setup(x => x.IsConfigured).Returns(false);
+        
+        var service = new AzureBlobStorageService(mockWrapper.Object, _mockLogger.Object);
+        using var stream = new MemoryStream();
 
-        // Act & Assert - service should not throw; it will be unconfigured and operations should fail
-        var act = () => new AzureBlobStorageService(mockConfig.Object, _mockLogger.Object);
-        act.Should().NotThrow();
+        // Act
+        var result = await service.UploadImageAsync(stream, "test.jpg");
 
-        var svc = new AzureBlobStorageService(mockConfig.Object, _mockLogger.Object);
-        var uploadResult = svc.UploadImageAsync(new System.IO.MemoryStream(), "file.jpg").GetAwaiter().GetResult();
-        uploadResult.IsSuccess.Should().BeFalse();
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("Azure Storage is not configured");
     }
 
-    [Fact(Skip = "Integration test - requires Azure Storage Emulator running on localhost:10000")]
-    public void Constructor_MissingContainerName_UsesDefaultName()
-    {
-        // Arrange
-        var mockConfig = new Mock<IConfiguration>();
-        mockConfig.Setup(x => x["AzureStorage:ConnectionString"])
-            .Returns("UseDevelopmentStorage=true");
-        mockConfig.Setup(x => x["AzureStorage:ContainerName"])
-            .Returns((string?)null);
-
-        // Act & Assert - should use default "menu-images"
-        var act = () => new AzureBlobStorageService(mockConfig.Object, _mockLogger.Object);
-        act.Should().NotThrow();
-    }
-
-    // Note: The following tests would require mocking the Azure SDK which is complex.
-    // In a real scenario, you might want to:
-    // 1. Use integration tests with Azure Storage Emulator
-    // 2. Create an interface wrapper around BlobContainerClient for better testability
-    // 3. Use acceptance tests instead of unit tests for this service
-
-    // For demonstration, here's a conceptual test structure:
     [Fact]
     public async Task UploadImageAsync_ValidStream_ReturnsSuccessWithUrl()
     {
-        // This test would require extensive mocking of Azure SDK classes
-        // or using an actual test container with the Azure Storage Emulator
+        // Arrange
+        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var fileName = "test.jpg";
+        var expectedUri = new Uri("https://teststorage.blob.core.windows.net/container/guid_test.jpg");
+
+        _mockContainerWrapper.Setup(x => x.UploadAsync(
+            It.IsAny<string>(), 
+            It.IsAny<Stream>(), 
+            It.IsAny<BlobHttpHeaders>(), 
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _mockContainerWrapper.Setup(x => x.GetBlobUri(It.IsAny<string>()))
+            .Returns(expectedUri);
+
+        // Act
+        var result = await _blobStorageService.UploadImageAsync(stream, fileName);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().Be(expectedUri.ToString());
+
+        _mockContainerWrapper.Verify(x => x.UploadAsync(
+            It.Is<string>(s => s.EndsWith("_test.jpg")),
+            It.IsAny<Stream>(),
+            It.Is<BlobHttpHeaders>(h => h.ContentType == "image/jpeg"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UploadImageAsync_ExceptionThrown_ReturnsFailure()
+    {
+        // Arrange
+        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var fileName = "test.jpg";
+
+        _mockContainerWrapper.Setup(x => x.UploadAsync(
+            It.IsAny<string>(), 
+            It.IsAny<Stream>(), 
+            It.IsAny<BlobHttpHeaders>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Upload failed"));
+
+        // Act
+        var result = await _blobStorageService.UploadImageAsync(stream, fileName);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("Failed to upload image");
+    }
+
+    [Fact]
+    public async Task UploadImageAsync_GeneratesUniqueBlobName()
+    {
+        // Arrange
+        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var fileName = "myimage.png";
+        string? capturedBlobName = null;
+
+        _mockContainerWrapper.Setup(x => x.UploadAsync(
+            It.IsAny<string>(), 
+            It.IsAny<Stream>(), 
+            It.IsAny<BlobHttpHeaders>(), 
+            It.IsAny<CancellationToken>()))
+            .Callback<string, Stream, BlobHttpHeaders, CancellationToken>((name, _, _, _) => capturedBlobName = name)
+            .Returns(Task.CompletedTask);
+
+        _mockContainerWrapper.Setup(x => x.GetBlobUri(It.IsAny<string>()))
+            .Returns(new Uri("https://test.blob.core.windows.net/container/blob"));
+
+        // Act
+        await _blobStorageService.UploadImageAsync(stream, fileName);
+
+        // Assert
+        capturedBlobName.Should().NotBeNull();
+        capturedBlobName.Should().EndWith("_myimage.png");
+        capturedBlobName.Should().MatchRegex(@"^[a-f0-9\-]{36}_myimage\.png$");
+    }
+
+    #endregion
+
+    #region DeleteImageAsync Tests
+
+    [Fact]
+    public async Task DeleteImageAsync_NotConfigured_ReturnsFailure()
+    {
+        // Arrange
+        var mockWrapper = new Mock<IBlobContainerClientWrapper>();
+        mockWrapper.Setup(x => x.IsConfigured).Returns(false);
         
-        // For now, we document that this service should be tested via integration tests
-        // due to its direct dependency on Azure SDK which doesn't provide easy mocking
-        
-        Assert.True(true, "Integration test required for Azure Blob Storage operations");
+        var service = new AzureBlobStorageService(mockWrapper.Object, _mockLogger.Object);
+        var blobUrl = "https://teststorage.blob.core.windows.net/container/test.jpg";
+
+        // Act
+        var result = await service.DeleteImageAsync(blobUrl);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("Azure Storage is not configured");
     }
 
     [Fact]
     public async Task DeleteImageAsync_ValidUrl_ReturnsSuccess()
     {
-        // Integration test required
-        Assert.True(true, "Integration test required for Azure Blob Storage operations");
+        // Arrange
+        var blobUrl = "https://teststorage.blob.core.windows.net/container/test-image.jpg";
+
+        _mockContainerWrapper.Setup(x => x.DeleteIfExistsAsync(
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _blobStorageService.DeleteImageAsync(blobUrl);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
+
+        _mockContainerWrapper.Verify(x => x.DeleteIfExistsAsync(
+            "test-image.jpg",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task UploadImageAsync_Exception_ReturnsFailure()
+    public async Task DeleteImageAsync_BlobDoesNotExist_StillReturnsSuccess()
     {
-        // Integration test required
-        Assert.True(true, "Integration test required for Azure Blob Storage operations");
+        // Arrange
+        var blobUrl = "https://teststorage.blob.core.windows.net/container/nonexistent.jpg";
+
+        _mockContainerWrapper.Setup(x => x.DeleteIfExistsAsync(
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false); // Blob didn't exist
+
+        // Act
+        var result = await _blobStorageService.DeleteImageAsync(blobUrl);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
-    public async Task DeleteImageAsync_Exception_ReturnsFailure()
+    public async Task DeleteImageAsync_ExceptionThrown_ReturnsFailure()
     {
-        // Integration test required
-        Assert.True(true, "Integration test required for Azure Blob Storage operations");
+        // Arrange
+        var blobUrl = "https://teststorage.blob.core.windows.net/container/test.jpg";
+
+        _mockContainerWrapper.Setup(x => x.DeleteIfExistsAsync(
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Delete failed"));
+
+        // Act
+        var result = await _blobStorageService.DeleteImageAsync(blobUrl);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("Failed to delete image");
     }
+
+    [Fact]
+    public async Task DeleteImageAsync_ExtractsBlobNameFromUrl()
+    {
+        // Arrange
+        var blobUrl = "https://myaccount.blob.core.windows.net/mycontainer/subfolder/myblob.jpg";
+        string? capturedBlobName = null;
+
+        _mockContainerWrapper.Setup(x => x.DeleteIfExistsAsync(
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((name, _) => capturedBlobName = name)
+            .ReturnsAsync(true);
+
+        // Act
+        await _blobStorageService.DeleteImageAsync(blobUrl);
+
+        // Assert
+        capturedBlobName.Should().Be("myblob.jpg");
+    }
+
+    [Fact]
+    public async Task DeleteImageAsync_InvalidUrl_ReturnsFailure()
+    {
+        // Arrange
+        var invalidUrl = "not-a-valid-url";
+
+        // Act
+        var result = await _blobStorageService.DeleteImageAsync(invalidUrl);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("Failed to delete image");
+    }
+
+    #endregion
+
+    #region CancellationToken Tests
+
+    [Fact]
+    public async Task UploadImageAsync_PassesCancellationToken()
+    {
+        // Arrange
+        using var stream = new MemoryStream();
+        using var cts = new CancellationTokenSource();
+        var token = cts.Token;
+
+        _mockContainerWrapper.Setup(x => x.UploadAsync(
+            It.IsAny<string>(), 
+            It.IsAny<Stream>(), 
+            It.IsAny<BlobHttpHeaders>(), 
+            token))
+            .Returns(Task.CompletedTask);
+
+        _mockContainerWrapper.Setup(x => x.GetBlobUri(It.IsAny<string>()))
+            .Returns(new Uri("https://test.blob.core.windows.net/container/blob"));
+
+        // Act
+        await _blobStorageService.UploadImageAsync(stream, "test.jpg", token);
+
+        // Assert
+        _mockContainerWrapper.Verify(x => x.UploadAsync(
+            It.IsAny<string>(),
+            It.IsAny<Stream>(),
+            It.IsAny<BlobHttpHeaders>(),
+            token), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteImageAsync_PassesCancellationToken()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var token = cts.Token;
+        var blobUrl = "https://teststorage.blob.core.windows.net/container/test.jpg";
+
+        _mockContainerWrapper.Setup(x => x.DeleteIfExistsAsync(It.IsAny<string>(), token))
+            .ReturnsAsync(true);
+
+        // Act
+        await _blobStorageService.DeleteImageAsync(blobUrl, token);
+
+        // Assert
+        _mockContainerWrapper.Verify(x => x.DeleteIfExistsAsync(
+            It.IsAny<string>(), token), Times.Once);
+    }
+
+    #endregion
 }
-

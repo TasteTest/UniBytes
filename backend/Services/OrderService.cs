@@ -256,7 +256,7 @@ public class OrderService(
             if (!result.IsSuccess && result.Error?.Contains("not found") == true)
             {
                 logger.LogInformation("Creating loyalty account for user {UserId}", order.UserId);
-                var createRequest = new DTOs.Loyalty.Request.CreateLoyaltyAccountRequest
+                var createRequest = new CreateLoyaltyAccountRequest
                 {
                     UserId = order.UserId
                 };
@@ -298,7 +298,7 @@ public class OrderService(
         OrderStatus = ((OrderStatus)order.OrderStatus).ToString(),
         CreatedAt = order.CreatedAt,
         Metadata = order.Metadata,
-        OrderItems = order.OrderItems.Select(oi => new DTOs.Order.Response.OrderItemResponse
+        OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
         {
             Id = oi.Id,
             MenuItemId = oi.MenuItemId,

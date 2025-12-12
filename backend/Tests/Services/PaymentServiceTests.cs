@@ -4,12 +4,14 @@ using backend.Common.Enums;
 using backend.Models;
 using backend.Repositories.Interfaces;
 using backend.Services;
+using backend.Services.Interfaces;
 using backend.DTOs.Payment.Request;
 using backend.DTOs.Payment.Response;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
+using Stripe.Checkout;
 using Xunit;
 
 namespace Backend.Tests.Services;
@@ -19,6 +21,7 @@ public class PaymentServiceTests
     private readonly Mock<IPaymentRepository> _mockPaymentRepository;
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<ILogger<PaymentService>> _mockLogger;
+    private readonly Mock<IStripeServiceWrapper> _mockStripeWrapper;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly PaymentService _paymentService;
 
@@ -27,15 +30,16 @@ public class PaymentServiceTests
         _mockPaymentRepository = new Mock<IPaymentRepository>();
         _mockMapper = new Mock<IMapper>();
         _mockLogger = new Mock<ILogger<PaymentService>>();
+        _mockStripeWrapper = new Mock<IStripeServiceWrapper>();
         _mockConfiguration = new Mock<IConfiguration>();
 
-        // Provide minimal configuration required by PaymentService
-        _mockConfiguration.Setup(c => c[It.Is<string>(s => s == "Stripe:SecretKey")]).Returns("sk_test_123");
+        _mockConfiguration.Setup(c => c["FrontendUrl"]).Returns("http://localhost:3000");
 
         _paymentService = new PaymentService(
             _mockPaymentRepository.Object,
             _mockMapper.Object,
             _mockLogger.Object,
+            _mockStripeWrapper.Object,
             _mockConfiguration.Object);
     }
 
@@ -406,5 +410,130 @@ public class PaymentServiceTests
         capturedPayment!.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
         capturedPayment.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
     }
+
+    #region CreateCheckoutSessionAsync Tests
+
+    [Fact]
+    public async Task CreateCheckoutSessionAsync_Success_ReturnsSessionResponse()
+    {
+        // Arrange
+        var request = new CreateCheckoutSessionRequest
+        {
+            OrderId = Guid.NewGuid(),
+            UserEmail = "test@example.com",
+            LineItems = new List<CheckoutLineItem>
+            {
+                new CheckoutLineItem { Name = "Product 1", UnitPrice = 10.00m, Quantity = 2 }
+            }
+        };
+
+        var session = new Session { Id = "cs_test_123", Url = "https://checkout.stripe.com/pay/cs_test_123" };
+
+        _mockStripeWrapper.Setup(x => x.CreateCheckoutSessionAsync(It.IsAny<SessionCreateOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+
+        // Act
+        var result = await _paymentService.CreateCheckoutSessionAsync(request, "user123");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.SessionId.Should().Be("cs_test_123");
+        result.Data.SessionUrl.Should().Be("https://checkout.stripe.com/pay/cs_test_123");
+    }
+
+    [Fact]
+    public async Task CreateCheckoutSessionAsync_MultipleLineItems_CreatesSession()
+    {
+        // Arrange
+        var request = new CreateCheckoutSessionRequest
+        {
+            OrderId = Guid.NewGuid(),
+            UserEmail = "test@example.com",
+            LineItems = new List<CheckoutLineItem>
+            {
+                new CheckoutLineItem { Name = "Product 1", UnitPrice = 10.00m, Quantity = 2 },
+                new CheckoutLineItem { Name = "Product 2", UnitPrice = 25.50m, Quantity = 1 }
+            }
+        };
+
+        var session = new Session { Id = "cs_test_456", Url = "https://checkout.stripe.com/pay/cs_test_456" };
+
+        SessionCreateOptions? capturedOptions = null;
+        _mockStripeWrapper.Setup(x => x.CreateCheckoutSessionAsync(It.IsAny<SessionCreateOptions>(), It.IsAny<CancellationToken>()))
+            .Callback<SessionCreateOptions, CancellationToken>((opts, _) => capturedOptions = opts)
+            .ReturnsAsync(session);
+
+        // Act
+        var result = await _paymentService.CreateCheckoutSessionAsync(request, "user456");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        capturedOptions.Should().NotBeNull();
+        capturedOptions!.LineItems.Should().HaveCount(2);
+        capturedOptions.CustomerEmail.Should().Be("test@example.com");
+        capturedOptions.Metadata["userId"].Should().Be("user456");
+    }
+
+    [Fact]
+    public async Task CreateCheckoutSessionAsync_StripeException_ReturnsFailure()
+    {
+        // Arrange
+        var request = new CreateCheckoutSessionRequest
+        {
+            OrderId = Guid.NewGuid(),
+            UserEmail = "test@example.com",
+            LineItems = new List<CheckoutLineItem>
+            {
+                new CheckoutLineItem { Name = "Product", UnitPrice = 10.00m, Quantity = 1 }
+            }
+        };
+
+        _mockStripeWrapper.Setup(x => x.CreateCheckoutSessionAsync(It.IsAny<SessionCreateOptions>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Stripe API error"));
+
+        // Act
+        var result = await _paymentService.CreateCheckoutSessionAsync(request, "user789");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Stripe API error");
+    }
+
+    [Fact]
+    public async Task CreateCheckoutSessionAsync_SetsCorrectCurrencyAndUrls()
+    {
+        // Arrange
+        var request = new CreateCheckoutSessionRequest
+        {
+            OrderId = Guid.NewGuid(),
+            UserEmail = "test@example.com",
+            LineItems = new List<CheckoutLineItem>
+            {
+                new CheckoutLineItem { Name = "Product", UnitPrice = 15.00m, Quantity = 1 }
+            }
+        };
+
+        var session = new Session { Id = "cs_test", Url = "https://checkout.stripe.com" };
+
+        SessionCreateOptions? capturedOptions = null;
+        _mockStripeWrapper.Setup(x => x.CreateCheckoutSessionAsync(It.IsAny<SessionCreateOptions>(), It.IsAny<CancellationToken>()))
+            .Callback<SessionCreateOptions, CancellationToken>((opts, _) => capturedOptions = opts)
+            .ReturnsAsync(session);
+
+        // Act
+        await _paymentService.CreateCheckoutSessionAsync(request, "user");
+
+        // Assert
+        capturedOptions.Should().NotBeNull();
+        capturedOptions!.LineItems![0].PriceData!.Currency.Should().Be("ron");
+        capturedOptions.LineItems![0].PriceData!.UnitAmount.Should().Be(1500); // 15.00 * 100
+        capturedOptions.SuccessUrl.Should().Contain("success");
+        capturedOptions.CancelUrl.Should().Contain("checkout");
+    }
+
+    #endregion
 }
 
