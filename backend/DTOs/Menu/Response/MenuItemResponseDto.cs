@@ -19,7 +19,7 @@ public class MenuItemResponseDto
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
     public decimal Price { get; init; }
-    public string Currency { get; init; } = "USD";
+    public string Currency { get; init; } = "ron";
     public bool Available { get; init; }
     public int Visibility { get; init; }
     public JsonDocument? Components { get; init; }

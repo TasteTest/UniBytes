@@ -6,6 +6,7 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCartStore } from "@/lib/store"
+import { formatCurrency } from "@/lib/utils"
 import { paymentService } from "@/lib/services/PaymentService"
 import type { Payment } from "@/lib/types/payment.types"
 
@@ -122,7 +123,7 @@ function CheckoutSuccessContent() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Amount:</span>
               <span className="font-semibold">
-                ${payment.amount.toFixed(2)} {payment.currency.toUpperCase()}
+                {formatCurrency(payment.amount, payment.currency)}
               </span>
             </div>
             <div className="flex justify-between text-sm">

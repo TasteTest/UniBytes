@@ -8,6 +8,7 @@ export interface CheckoutLineItem {
   description?: string
   unitPrice: number
   quantity: number
+  currency: string
   imageUrl?: string
   modifiers?: any
 }

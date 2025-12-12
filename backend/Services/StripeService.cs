@@ -90,7 +90,7 @@ public class StripeService : IStripeService
                     li.Quantity,
                     li.Modifiers
                 )).ToList(),
-                "USD",
+                request.LineItems.FirstOrDefault()?.Currency?.ToLowerInvariant() ?? "ron",
                 request.Metadata
             );
 
@@ -104,13 +104,16 @@ public class StripeService : IStripeService
             var createdOrderId = orderResult.Data!.Id;
             _logger.LogInformation("Created order {OrderId} for user {UserId}", createdOrderId, userId);
 
+            // Get currency from line items (use first item's currency, default to RON)
+            var currency = request.LineItems.FirstOrDefault()?.Currency?.ToLowerInvariant();
+
             // Create payment record with validated user ID and actual order ID
             var payment = new Payment
             {
                 OrderId = createdOrderId,
                 UserId = userId,
                 Amount = request.LineItems.Sum(li => li.UnitPrice * li.Quantity),
-                Currency = "usd",
+                Currency = currency,
                 Provider = PaymentProvider.Stripe,
                 Status = PaymentStatus.Processing,
                 CreatedAt = DateTime.UtcNow,
@@ -124,7 +127,7 @@ public class StripeService : IStripeService
             {
                 PriceData = new SessionLineItemPriceDataOptions
                 {
-                    Currency = "usd",
+                    Currency = item.Currency?.ToLowerInvariant() ?? currency,
                     UnitAmount = (long)(item.UnitPrice * 100), // Convert to cents
                     ProductData = new SessionLineItemPriceDataProductDataOptions
                     {

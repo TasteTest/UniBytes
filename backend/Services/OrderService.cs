@@ -89,7 +89,7 @@ public class OrderService(
             {
                 Id = Guid.NewGuid(),
                 UserId = createRequest.UserId,
-                Currency = createRequest.Currency,
+                Currency = createRequest.Currency?.ToLowerInvariant(),
                 PaymentStatus = 0,
                 OrderStatus = 0,
                 PlacedAt = DateTime.UtcNow,

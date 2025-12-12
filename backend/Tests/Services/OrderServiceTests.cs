@@ -47,7 +47,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100.50m,
-            Currency = "RON",
+            Currency = "ron",
             PaymentStatus = 0,
             OrderStatus = 0,
             PlacedAt = DateTime.UtcNow,
@@ -114,8 +114,8 @@ public class OrderServiceTests
         // Arrange
         var orders = new List<Order>
         {
-            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), TotalAmount = 50m, Currency = "RON", OrderItems = new List<OrderItem>() },
-            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), TotalAmount = 75m, Currency = "RON", OrderItems = new List<OrderItem>() }
+            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), TotalAmount = 50m, Currency = "ron", OrderItems = new List<OrderItem>() },
+            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), TotalAmount = 75m, Currency = "ron", OrderItems = new List<OrderItem>() }
         };
 
         _mockOrderRepository.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -158,7 +158,7 @@ public class OrderServiceTests
         var userId = Guid.NewGuid();
         var orders = new List<Order>
         {
-            new Order { Id = Guid.NewGuid(), UserId = userId, TotalAmount = 100m, Currency = "RON", OrderItems = new List<OrderItem>() }
+            new Order { Id = Guid.NewGuid(), UserId = userId, TotalAmount = 100m, Currency = "ron", OrderItems = new List<OrderItem>() }
         };
 
         _mockOrderRepository.Setup(x => x.GetByUserIdAsync(userId, It.IsAny<CancellationToken>()))
@@ -202,7 +202,7 @@ public class OrderServiceTests
         var status = (int)OrderStatus.Pending;
         var orders = new List<Order>
         {
-            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), OrderStatus = status, TotalAmount = 50m, Currency = "RON", OrderItems = new List<OrderItem>() }
+            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), OrderStatus = status, TotalAmount = 50m, Currency = "ron", OrderItems = new List<OrderItem>() }
         };
 
         _mockOrderRepository.Setup(x => x.GetByStatusAsync(status, It.IsAny<CancellationToken>()))
@@ -251,7 +251,7 @@ public class OrderServiceTests
                 new CreateOrderItemRequest(Guid.NewGuid(), "Pizza", 25.00m, 2, null),
                 new CreateOrderItemRequest(Guid.NewGuid(), "Drink", 5.00m, 3, null)
             },
-            "RON",
+            "ron",
             null
         );
 
@@ -281,7 +281,7 @@ public class OrderServiceTests
             {
                 new CreateOrderItemRequest(Guid.NewGuid(), "Pizza", 25.00m, 1, null)
             },
-            "RON",
+            "ron",
             null
         );
 
@@ -312,7 +312,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Pending,
             OrderItems = new List<OrderItem>()
         };
@@ -348,7 +348,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Preparing,
             OrderItems = new List<OrderItem>()
         };
@@ -386,7 +386,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Preparing,
             OrderItems = new List<OrderItem>()
         };
@@ -466,7 +466,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Completed,
             OrderItems = new List<OrderItem>()
         };
@@ -503,7 +503,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = Guid.NewGuid(),
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Pending,
             OrderItems = new List<OrderItem>()
         };
@@ -550,7 +550,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = Guid.NewGuid(),
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Confirmed,
             OrderItems = new List<OrderItem>()
         };
@@ -598,7 +598,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = Guid.NewGuid(),
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderItems = new List<OrderItem>()
         };
 
@@ -662,7 +662,7 @@ public class OrderServiceTests
         var externalUserRef = "external-123";
         var orders = new List<Order>
         {
-            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), ExternalUserRef = externalUserRef, TotalAmount = 50m, Currency = "RON", OrderItems = new List<OrderItem>() }
+            new Order { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), ExternalUserRef = externalUserRef, TotalAmount = 50m, Currency = "ron", OrderItems = new List<OrderItem>() }
         };
 
         _mockOrderRepository.Setup(x => x.GetByExternalUserRefAsync(externalUserRef, It.IsAny<CancellationToken>()))
@@ -709,7 +709,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = Guid.Empty,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Preparing,
             OrderItems = new List<OrderItem>()
         };
@@ -743,7 +743,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 0.50m, // Less than 1, rounds to 0 points
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Preparing,
             OrderItems = new List<OrderItem>()
         };
@@ -777,7 +777,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Preparing,
             OrderItems = new List<OrderItem>()
         };
@@ -812,7 +812,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Preparing,
             OrderItems = new List<OrderItem>()
         };
@@ -847,7 +847,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = userId,
             TotalAmount = 100m,
-            Currency = "RON",
+            Currency = "ron",
             OrderStatus = (int)OrderStatus.Preparing,
             OrderItems = new List<OrderItem>()
         };
@@ -902,7 +902,7 @@ public class OrderServiceTests
             Id = orderId,
             UserId = Guid.NewGuid(),
             TotalAmount = 20.00m,
-            Currency = "RON",
+            Currency = "ron",
             PaymentStatus = (int)PaymentStatus.Processing,
             OrderStatus = (int)OrderStatus.Pending,
             OrderItems = new List<OrderItem> { orderItem }

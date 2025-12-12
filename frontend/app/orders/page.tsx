@@ -85,7 +85,7 @@ export default function OrdersPage() {
                     return;
                 }
 
-                const response = await fetch(`${apiBase}/orders/user/${user.backendId}`, {
+                const response = await fetch(`${apiBase}/orders/user/${userId}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,

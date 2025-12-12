@@ -63,13 +63,14 @@ export default function CheckoutPage() {
         description: item.menuItem.description || undefined,
         unitPrice: item.menuItem.price,
         quantity: item.quantity,
+        currency: item.menuItem.currency || 'RON',
         imageUrl: item.menuItem.image || undefined,
         modifiers: item.modifiers?.length ? item.modifiers : [],
       }))
 
       // Generate a temporary order ID (in production, create order first)
       const orderId = crypto.randomUUID()
-      
+
       // Get access token from session
       const accessToken = (session as any).accessToken || ''
       const userEmail = session.user.email || ''
@@ -258,8 +259,8 @@ export default function CheckoutPage() {
                 <Button variant="outline" onClick={() => setStep(1)} disabled={isProcessing}>
                   Back
                 </Button>
-                <Button 
-                  onClick={handleContinueToPayment} 
+                <Button
+                  onClick={handleContinueToPayment}
                   className="flex-1"
                   disabled={isProcessing}
                 >

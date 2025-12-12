@@ -221,7 +221,7 @@ export default function LoyaltyPage() {
               </div>
               <h3 className="font-semibold mb-1">Order Food</h3>
               <p className="text-sm text-muted-foreground">
-                Earn 10 points for every $1 spent
+                Earn 10 points for every 1 RON spent
               </p>
             </div>
             <div className="text-center">

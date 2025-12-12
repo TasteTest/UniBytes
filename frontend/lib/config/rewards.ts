@@ -24,8 +24,8 @@ export const AVAILABLE_REWARDS: Reward[] = [
   },
   {
     id: 'reward-5-off',
-    name: '$5 Off',
-    description: '$5 off your next order',
+    name: '5 RON Off',
+    description: '5 RON off your next order',
     pointsRequired: 200,
     rewardType: 'Discount',
     available: true,
@@ -37,7 +37,7 @@ export const AVAILABLE_REWARDS: Reward[] = [
   {
     id: 'reward-free-meal',
     name: 'Free Meal',
-    description: 'Any menu item up to $15',
+    description: 'Any menu item up to 15 RON',
     pointsRequired: 500,
     rewardType: 'MenuItem',
     available: true,
@@ -64,6 +64,9 @@ export const AVAILABLE_REWARDS: Reward[] = [
     pointsRequired: 150,
     rewardType: 'MenuItem',
     available: true,
+    metadata: {
+      maxValue: 15, // Assuming a reasonable max value for dessert
+    },
   },
 ]
 
@@ -71,7 +74,7 @@ export const AVAILABLE_REWARDS: Reward[] = [
  * Points earning rates
  */
 export const POINTS_EARNING_RATE = {
-  pointsPerDollar: 10,
+  pointsPerUnit: 10,
   bonusMultipliers: {
     Bronze: 1,
     Silver: 1.25,
@@ -94,7 +97,7 @@ export const TIER_THRESHOLDS = {
  * Calculate points earned for a purchase
  */
 export function calculatePointsEarned(amount: number, tierMultiplier: number = 1): number {
-  return Math.floor(amount * POINTS_EARNING_RATE.pointsPerDollar * tierMultiplier)
+  return Math.floor(amount * POINTS_EARNING_RATE.pointsPerUnit * tierMultiplier)
 }
 
 /**
@@ -102,12 +105,12 @@ export function calculatePointsEarned(amount: number, tierMultiplier: number = 1
  */
 export function getNextTierThreshold(currentPoints: number): { tier: string; threshold: number } | null {
   const tiers = Object.entries(TIER_THRESHOLDS).sort((a, b) => a[1] - b[1])
-  
+
   for (const [tier, threshold] of tiers) {
     if (currentPoints < threshold) {
       return { tier, threshold }
     }
   }
-  
+
   return null // Already at max tier
 }

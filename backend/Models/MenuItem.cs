@@ -12,7 +12,7 @@ public class MenuItem
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public decimal Price { get; set; }
-    public string Currency { get; set; } = "RON";
+    public string Currency { get; set; } = "ron";
     public bool Available { get; set; } = true;
     public int Visibility { get; init; } = 1;
     public JsonDocument? Components { get; set; }
