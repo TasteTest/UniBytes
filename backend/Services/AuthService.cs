@@ -116,6 +116,9 @@ public class AuthService(
                     else
                     {
                         // Create new user
+                        // First admin is hardcoded
+                        var isFirstAdmin = request.Email.ToLower() == "lisaioanamercas@gmail.com";
+                        
                         user = new User
                         {
                             Email = request.Email,
@@ -123,7 +126,7 @@ public class AuthService(
                             LastName = request.LastName,
                             AvatarUrl = request.AvatarUrl,
                             IsActive = true,
-                            IsAdmin = false,
+                            Role = isFirstAdmin ? Common.Enums.UserRole.Admin : Common.Enums.UserRole.User,
                             LastLoginAt = DateTime.UtcNow,
                             CreatedAt = DateTime.UtcNow,
                             UpdatedAt = DateTime.UtcNow

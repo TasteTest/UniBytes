@@ -83,14 +83,15 @@ public class AuthController(
                 return Unauthorized(new { error = "User not found" });
             }
 
-            // Return user info with ID (only for inter-service communication)
+            // Return user info with ID and role
             return Ok(new
             {
                 id = user.Id.ToString(),
                 email = user.Email,
                 firstName = user.FirstName,
                 lastName = user.LastName,
-                avatarUrl = user.AvatarUrl
+                avatarUrl = user.AvatarUrl,
+                role = (int)user.Role
             });
         }
         catch (Exception ex)
@@ -100,3 +101,4 @@ public class AuthController(
         }
     }
 }
+

@@ -29,7 +29,7 @@ const authOptions: NextAuthOptions = {
           const nameParts = user.name?.split(' ') || []
           const firstName = (profile as any)?.given_name || nameParts[0] || ''
           const lastName = (profile as any)?.family_name || nameParts.slice(1).join(' ') || ''
-          
+
           // Send OAuth data to backend for user creation/linking
           const response = await fetch(`${API_URL}/auth/google`, {
             method: 'POST',
@@ -54,6 +54,7 @@ const authOptions: NextAuthOptions = {
             const data = await response.json()
             // Store backend user data in token for later use
             user.backendId = data.userId
+            user.role = data.user?.role ?? 0 // 0=User, 1=Chef, 2=Admin
             return true
           } else {
             console.error('Backend authentication failed:', await response.text())
@@ -70,6 +71,7 @@ const authOptions: NextAuthOptions = {
       // Initial sign in
       if (user) {
         token.backendId = user.backendId
+        token.role = user.role ?? 0
       }
       // Store OAuth tokens
       if (account) {
@@ -82,6 +84,7 @@ const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.sub as string
         session.user.backendId = token.backendId as string
+        session.user.role = token.role as number
         session.accessToken = token.accessToken as string
       }
       return session

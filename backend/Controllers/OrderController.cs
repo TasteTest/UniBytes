@@ -7,13 +7,24 @@ namespace backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class OrdersController(IOrderService orderService) : ControllerBase
+public class OrdersController(IOrderService orderService, IUserService userService) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request, CancellationToken ct = default)
     {
         if (request == null) 
             return BadRequest("Order data is missing.");
+        
+        // Only User role can place orders (Chef/Admin cannot)
+        var userEmail = Request.Headers["X-User-Email"].ToString();
+        if (!string.IsNullOrEmpty(userEmail))
+        {
+            var user = await userService.GetUserEntityByEmailAsync(userEmail, ct);
+            if (user != null && user.Role != Common.Enums.UserRole.User)
+            {
+                return StatusCode(403, new { error = "Only regular users can place orders. Chef and Admin accounts cannot order." });
+            }
+        }
         
         var result = await orderService.CreateAsync(request, ct);
         if (!result.IsSuccess)
@@ -67,6 +78,17 @@ public class OrdersController(IOrderService orderService) : ControllerBase
     {
         if (request == null)
             return BadRequest("Status data is missing.");
+        
+        // Chef/Admin authorization check
+        var userEmail = Request.Headers["X-User-Email"].ToString();
+        if (!string.IsNullOrEmpty(userEmail))
+        {
+            var user = await userService.GetUserEntityByEmailAsync(userEmail, ct);
+            if (user == null || (user.Role != Common.Enums.UserRole.Chef && user.Role != Common.Enums.UserRole.Admin))
+            {
+                return StatusCode(403, new { error = "Only Chef or Admin can update order status" });
+            }
+        }
         
         var result = await orderService.UpdateStatusAsync(id, request, ct);
         if (!result.IsSuccess)

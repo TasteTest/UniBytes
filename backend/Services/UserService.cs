@@ -213,4 +213,31 @@ public class UserService(IUserRepository userRepository, IMapper mapper, ILogger
             return Result.Failure($"Error updating last login: {ex.Message}");
         }
     }
+
+    public async Task<Result<UserResponse>> SetUserRoleAsync(Guid userId, Common.Enums.UserRole newRole, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+            if (user == null)
+            {
+                return Result<UserResponse>.Failure($"User with id {userId} not found");
+            }
+
+            user.Role = newRole;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await userRepository.UpdateAsync(user, cancellationToken);
+
+            var userResponse = mapper.Map<UserResponse>(user);
+            logger.LogInformation("Changed user {UserId} role to {Role}", userId, newRole);
+            return Result<UserResponse>.Success(userResponse);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error setting user {UserId} role to {Role}", userId, newRole);
+            return Result<UserResponse>.Failure($"Error setting user role: {ex.Message}");
+        }
+    }
 }
+

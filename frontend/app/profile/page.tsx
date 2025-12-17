@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { User, Mail, Bell, CreditCard, MapPin, Loader2 } from "lucide-react"
+import { User, Mail, Bell, CreditCard, MapPin, Loader2, Shield } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,7 @@ export default function ProfilePage() {
   const { data: session } = useSession()
   const { user, loading, error, updateProfile } = useUser()
   const { toast } = useToast()
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -48,7 +48,7 @@ export default function ProfilePage() {
     setIsSaving(true)
     try {
       const success = await updateProfile(formData)
-      
+
       if (success) {
         toast({
           title: "Profile Updated",
@@ -106,9 +106,9 @@ export default function ProfilePage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6">
             <Avatar className="h-24 w-24">
-              <AvatarImage 
-                src={session?.user?.image || user?.avatarUrl || ""} 
-                alt={`${user?.firstName} ${user?.lastName}` || session?.user?.email || ""} 
+              <AvatarImage
+                src={session?.user?.image || user?.avatarUrl || ""}
+                alt={`${user?.firstName} ${user?.lastName}` || session?.user?.email || ""}
               />
               <AvatarFallback className="text-2xl">
                 {user?.firstName?.charAt(0).toUpperCase() || session?.user?.email?.charAt(0).toUpperCase()}
@@ -116,7 +116,7 @@ export default function ProfilePage() {
             </Avatar>
             <div className="flex-1">
               <h2 className="text-2xl font-bold mb-1">
-                {user?.firstName && user?.lastName 
+                {user?.firstName && user?.lastName
                   ? `${user.firstName} ${user.lastName}`
                   : session?.user?.name || "User"}
               </h2>
@@ -213,9 +213,11 @@ export default function ProfilePage() {
           </div>
           <Separator />
           <div className="flex items-center justify-between">
-            <span className="text-sm">Admin Access</span>
-            <span className={`text-sm font-medium ${user?.isAdmin ? 'text-blue-600' : 'text-muted-foreground'}`}>
-              {user?.isAdmin ? 'Yes' : 'No'}
+            <span className="text-sm">Role</span>
+            <span className={`text-sm font-medium ${user?.role === 2 ? 'text-purple-600' :
+                user?.role === 1 ? 'text-orange-500' : 'text-blue-600'
+              }`}>
+              {user?.role === 2 ? 'Admin' : user?.role === 1 ? 'Chef' : 'User'}
             </span>
           </div>
           <Separator />
@@ -272,3 +274,4 @@ export default function ProfilePage() {
     </div>
   )
 }
+

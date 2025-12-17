@@ -1,4 +1,5 @@
 using backend.Common;
+using backend.Common.Enums;
 
 namespace backend.Models;
 
@@ -14,7 +15,7 @@ public class User : BaseEntity
     public string? Location { get; init; }
     public string? AvatarUrl { get; set; }
     public bool IsActive { get; init; } = true;
-    public bool IsAdmin { get; init; }
+    public UserRole Role { get; set; } = UserRole.User;
     public DateTime? LastLoginAt { get; set; }
 
     // Navigation properties
