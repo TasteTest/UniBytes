@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
-import { ShoppingCart, Menu, Moon, Sun, User, Home, UtensilsCrossed, History, Award, LogOut, ChefHat } from "lucide-react"
+import { ShoppingCart, Menu, Moon, Sun, User, Home, UtensilsCrossed, History, Award, LogOut, ChefHat, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -70,6 +70,16 @@ export function Navigation() {
             >
               <ChefHat className="h-4 w-4" />
               Kitchen
+            </Link>
+          )}
+          {/* Admin link - visible only for Admin */}
+          {session && isAdmin && (
+            <Link
+              href="/admin"
+              className="text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 text-purple-500"
+            >
+              <Shield className="h-4 w-4" />
+              Admin
             </Link>
           )}
         </div>
