@@ -228,45 +228,142 @@ export default function AdminPage() {
     setDialogOpen(true)
   }
 
-  const handleSave = () => {
-    if (editingItem) {
-      setMenuItems((prev) =>
-        prev.map((item) =>
-          item.id === editingItem.id ? { ...formData, id: item.id } as MenuItem : item
-        )
-      )
+  const handleSave = async () => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL
+
+    // Find category ID from category name
+    const categoryObj = categoriesList.find(c => c.name === formData.category)
+    if (!categoryObj) {
       toast({
-        title: "Item updated",
-        description: "Menu item has been updated successfully",
+        title: "Error",
+        description: "Please select a valid category",
+        variant: "destructive"
       })
-    } else {
-      const newItem: MenuItem = {
-        ...formData,
-        id: Date.now().toString(),
-      } as MenuItem
-      setMenuItems((prev) => [...prev, newItem])
+      return
+    }
+
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      price: formData.price,
+      currency: formData.currency || "RON",
+      categoryId: categoryObj.id,
+      available: formData.available,
+    }
+
+    try {
+      if (editingItem) {
+        // Update existing item
+        console.log("Updating menu item:", editingItem.id, payload)
+        const response = await fetch(`${apiBase}/menuitems/${editingItem.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+
+        console.log("Response status:", response.status)
+
+        if (response.ok) {
+          toast({
+            title: "Item updated",
+            description: "Menu item has been updated successfully",
+          })
+          fetchMenuItems() // Refresh list
+        } else {
+          const errorText = await response.text()
+          console.error("Update error:", errorText)
+          toast({
+            title: "Error",
+            description: "Failed to update menu item",
+            variant: "destructive"
+          })
+        }
+      } else {
+        // Create new item
+        const response = await fetch(`${apiBase}/menuitems`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+
+        if (response.ok) {
+          toast({
+            title: "Item added",
+            description: "New menu item has been added successfully",
+          })
+          fetchMenuItems() // Refresh list
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to add menu item",
+            variant: "destructive"
+          })
+        }
+      }
+    } catch (err) {
       toast({
-        title: "Item added",
-        description: "New menu item has been added successfully",
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive"
       })
     }
     setDialogOpen(false)
   }
 
-  const handleDelete = (id: string) => {
-    setMenuItems((prev) => prev.filter((item) => item.id !== id))
-    toast({
-      title: "Item deleted",
-      description: "Menu item has been deleted",
-    })
+  const handleDelete = async (id: string) => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL
+    try {
+      const response = await fetch(`${apiBase}/menuitems/${id}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Item deleted",
+          description: "Menu item has been deleted",
+        })
+        fetchMenuItems() // Refresh list
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete menu item",
+          variant: "destructive"
+        })
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive"
+      })
+    }
   }
 
-  const toggleAvailability = (id: string) => {
-    setMenuItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, available: !item.available } : item
-      )
-    )
+  const toggleAvailability = async (id: string, currentAvailable: boolean) => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL
+    try {
+      const response = await fetch(`${apiBase}/menuitems/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ available: !currentAvailable })
+      })
+
+      if (response.ok) {
+        fetchMenuItems() // Refresh list
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update availability",
+          variant: "destructive"
+        })
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive"
+      })
+    }
   }
 
   const filteredItems = menuItems.filter(
@@ -420,7 +517,7 @@ export default function AdminPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toggleAvailability(item.id)}
+                        onClick={() => toggleAvailability(item.id, item.available)}
                       >
                         {item.available ? "Disable" : "Enable"}
                       </Button>
