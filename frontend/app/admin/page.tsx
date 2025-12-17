@@ -87,6 +87,10 @@ export default function AdminPage() {
   const [usersLoading, setUsersLoading] = useState(false)
   const [userSearch, setUserSearch] = useState("")
 
+  // Role change confirmation dialog
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string, email: string, newRole: string, newRoleValue: number } | null>(null)
+
   const { toast } = useToast()
 
   const [formData, setFormData] = useState<Partial<MenuItem>>({
@@ -128,24 +132,34 @@ export default function AdminPage() {
     }
   }
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
+  // Open confirmation dialog before role change
+  const requestRoleChange = (userId: string, email: string, newRoleValue: number) => {
+    const newRole = ROLES[newRoleValue]?.label || "User"
+    setPendingRoleChange({ userId, email, newRole, newRoleValue })
+    setRoleDialogOpen(true)
+  }
+
+  // Actually perform the role change after confirmation
+  const confirmRoleChange = async () => {
+    if (!pendingRoleChange) return
+
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL
-      const response = await fetch(`${apiBase}/users/${userId}/role`, {
+      const response = await fetch(`${apiBase}/users/${pendingRoleChange.userId}/role`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "X-User-Email": session?.user?.email || ""
         },
-        body: JSON.stringify({ role: newRole })
+        body: JSON.stringify({ role: pendingRoleChange.newRole })
       })
 
       if (response.ok) {
         const updatedUser = await response.json()
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: updatedUser.role } : u))
+        setUsers(prev => prev.map(u => u.id === pendingRoleChange.userId ? { ...u, role: updatedUser.role } : u))
         toast({
           title: "Role updated",
-          description: `User role changed to ${newRole}`,
+          description: `User role changed to ${pendingRoleChange.newRole}`,
         })
       } else {
         toast({
@@ -160,6 +174,9 @@ export default function AdminPage() {
         description: "Failed to connect to server",
         variant: "destructive"
       })
+    } finally {
+      setRoleDialogOpen(false)
+      setPendingRoleChange(null)
     }
   }
 
@@ -455,41 +472,39 @@ export default function AdminPage() {
             </Card>
           </div>
 
-          {/* Users List */}
-          <Card className="card-glass border-none">
-            <CardHeader>
-              <CardTitle>All Users</CardTitle>
-              <CardDescription>Manage user roles</CardDescription>
+          {/* Users List - Grouped by Role */}
+          {/* Admins */}
+          <Card className="card-glass border-none border-l-4 border-l-purple-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-purple-500" />
+                Administrators ({users.filter(u => u.role === 2).length})
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {usersLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {filteredUsers.map((user) => (
+                <div className="space-y-2">
+                  {filteredUsers.filter(u => u.role === 2).map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-semibold">
-                            {user.firstName && user.lastName
-                              ? `${user.firstName} ${user.lastName}`
-                              : user.email}
-                          </h3>
-                          <Badge className={ROLES[user.role]?.color || "bg-gray-500"}>
-                            {ROLES[user.role]?.label || "Unknown"}
-                          </Badge>
-                        </div>
+                        <h3 className="font-semibold">
+                          {user.firstName && user.lastName
+                            ? `${user.firstName} ${user.lastName}`
+                            : user.email}
+                        </h3>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
-                      <div className="w-32">
+                      <div className="w-28">
                         <Select
                           value={user.role.toString()}
-                          onValueChange={(value) => handleRoleChange(user.id, ROLES[parseInt(value)]?.label || "User")}
+                          onValueChange={(value) => requestRoleChange(user.id, user.email, parseInt(value))}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -505,10 +520,118 @@ export default function AdminPage() {
                       </div>
                     </div>
                   ))}
-                  {filteredUsers.length === 0 && !usersLoading && (
-                    <p className="text-center text-muted-foreground py-8">
-                      No users found
-                    </p>
+                  {filteredUsers.filter(u => u.role === 2).length === 0 && (
+                    <p className="text-center text-muted-foreground py-2 text-sm">No admins</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Chefs */}
+          <Card className="card-glass border-none border-l-4 border-l-orange-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-orange-500" />
+                Chefs ({users.filter(u => u.role === 1).length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {usersLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredUsers.filter(u => u.role === 1).map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-semibold">
+                          {user.firstName && user.lastName
+                            ? `${user.firstName} ${user.lastName}`
+                            : user.email}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                      <div className="w-28">
+                        <Select
+                          value={user.role.toString()}
+                          onValueChange={(value) => requestRoleChange(user.id, user.email, parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROLES.map((role) => (
+                              <SelectItem key={role.value} value={role.value.toString()}>
+                                {role.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredUsers.filter(u => u.role === 1).length === 0 && (
+                    <p className="text-center text-muted-foreground py-2 text-sm">No chefs</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Regular Users */}
+          <Card className="card-glass border-none border-l-4 border-l-blue-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                Users ({users.filter(u => u.role === 0).length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {usersLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredUsers.filter(u => u.role === 0).map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-semibold">
+                          {user.firstName && user.lastName
+                            ? `${user.firstName} ${user.lastName}`
+                            : user.email}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                      <div className="w-28">
+                        <Select
+                          value={user.role.toString()}
+                          onValueChange={(value) => requestRoleChange(user.id, user.email, parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROLES.map((role) => (
+                              <SelectItem key={role.value} value={role.value.toString()}>
+                                {role.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredUsers.filter(u => u.role === 0).length === 0 && (
+                    <p className="text-center text-muted-foreground py-2 text-sm">No users</p>
                   )}
                 </div>
               )}
@@ -622,6 +745,45 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Role Change Confirmation Dialog */}
+      <Dialog open={roleDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setRoleDialogOpen(false)
+          setPendingRoleChange(null)
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Role Change</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to change the role?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              You are about to grant <strong className="text-foreground">{pendingRoleChange?.email}</strong> the <strong className={`${pendingRoleChange?.newRoleValue === 2 ? 'text-purple-500' :
+                  pendingRoleChange?.newRoleValue === 1 ? 'text-orange-500' : 'text-blue-500'
+                }`}>{pendingRoleChange?.newRole}</strong> role.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              This will change their access permissions immediately.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setRoleDialogOpen(false)
+              setPendingRoleChange(null)
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={confirmRoleChange}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
