@@ -48,39 +48,18 @@ const ROLES = [
   { value: 2, label: "Admin", color: "bg-purple-500" },
 ]
 
-const initialMenuItems: MenuItem[] = [
-  {
-    id: "1",
-    name: "Grilled Chicken Sandwich",
-    description: "Juicy grilled chicken with fresh vegetables",
-    price: 8.99,
-    currency: "RON",
-    category: "Sandwiches",
-    available: true,
-    preparationTime: 10,
-  },
-  {
-    id: "2",
-    name: "Caesar Salad",
-    description: "Fresh romaine lettuce with parmesan",
-    price: 6.99,
-    currency: "RON",
-    category: "Salads",
-    available: true,
-    preparationTime: 5,
-  },
-]
-
 export default function AdminPage() {
   const { isAdmin, isLoading: roleLoading } = useRole()
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState("menu")
 
   // Menu state
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [menuLoading, setMenuLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
+  const [categoriesList, setCategoriesList] = useState<{ id: string, name: string }[]>([])
 
   // Users state
   const [users, setUsers] = useState<UserData[]>([])
@@ -103,7 +82,14 @@ export default function AdminPage() {
     preparationTime: 0,
   })
 
-  const categories = ["Sandwiches", "Salads", "Pizza", "Burgers", "Bowls", "Desserts", "Drinks"]
+  const categoryNames = categoriesList.map(c => c.name)
+
+  // Fetch menu items when Menu tab is active
+  useEffect(() => {
+    if (activeTab === "menu" && isAdmin) {
+      fetchMenuItems()
+    }
+  }, [activeTab, isAdmin])
 
   // Fetch users when Users tab is active
   useEffect(() => {
@@ -111,6 +97,49 @@ export default function AdminPage() {
       fetchUsers()
     }
   }, [activeTab, isAdmin])
+
+  const fetchMenuItems = async () => {
+    setMenuLoading(true)
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL
+      const [categoriesRes, menuItemsRes] = await Promise.all([
+        fetch(`${apiBase}/categories`),
+        fetch(`${apiBase}/menuitems`)
+      ])
+
+      if (categoriesRes.ok && menuItemsRes.ok) {
+        const categoriesData = await categoriesRes.json()
+        const menuItemsData = await menuItemsRes.json()
+
+        // Create category map
+        const categoryMap = new Map(categoriesData.map((cat: { id: string, name: string }) => [cat.id, cat.name]))
+
+        // Map backend items to frontend format
+        const mappedItems: MenuItem[] = menuItemsData.map((item: { id: string, categoryId: string, name: string, description: string | null, price: number, currency: string, available: boolean, imageUrl: string | null }) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          price: item.price,
+          currency: item.currency || 'RON',
+          category: categoryMap.get(item.categoryId) || 'Other',
+          available: item.available,
+          preparationTime: 10,
+        }))
+
+        setCategoriesList(categoriesData)
+        setMenuItems(mappedItems)
+      }
+    } catch (err) {
+      console.error("Error fetching menu items:", err)
+      toast({
+        title: "Error",
+        description: "Failed to load menu items",
+        variant: "destructive"
+      })
+    } finally {
+      setMenuLoading(false)
+    }
+  }
 
   const fetchUsers = async () => {
     setUsersLoading(true)
@@ -714,7 +743,7 @@ export default function AdminPage() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  {categoryNames.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
@@ -763,7 +792,7 @@ export default function AdminPage() {
           <div className="py-4">
             <p className="text-sm text-muted-foreground mb-4">
               You are about to grant <strong className="text-foreground">{pendingRoleChange?.email}</strong> the <strong className={`${pendingRoleChange?.newRoleValue === 2 ? 'text-purple-500' :
-                  pendingRoleChange?.newRoleValue === 1 ? 'text-orange-500' : 'text-blue-500'
+                pendingRoleChange?.newRoleValue === 1 ? 'text-orange-500' : 'text-blue-500'
                 }`}>{pendingRoleChange?.newRole}</strong> role.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -783,7 +812,7 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   )
 }
 
