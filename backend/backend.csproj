@@ -25,7 +25,7 @@
         <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.1" />
         <PackageReference Include="Stripe.net" Version="50.0.0" />
         <PackageReference Include="DotNetEnv" Version="3.1.1" />
-        <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
+        <PackageReference Include="Azure.Storage.Blobs" Version="12.22.0" />
         <PackageReference Include="Azure.Identity" Version="1.11.4" />
     </ItemGroup>
 
