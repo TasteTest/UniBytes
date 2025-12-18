@@ -11,7 +11,7 @@ export interface User {
   location?: string | null
   avatarUrl?: string | null
   isActive: boolean
-  isAdmin: boolean
+  role: number // 0=User, 1=Chef, 2=Admin
   lastLoginAt?: string | null
   createdAt: string
   updatedAt: string
@@ -25,7 +25,7 @@ export interface CreateUserRequest {
   location?: string | null
   avatarUrl?: string | null
   isActive?: boolean
-  isAdmin?: boolean
+  role?: number
 }
 
 export interface UpdateUserRequest {
@@ -36,7 +36,7 @@ export interface UpdateUserRequest {
   location?: string | null
   avatarUrl?: string | null
   isActive?: boolean
-  isAdmin?: boolean
+  role?: number
 }
 
 export interface OAuthProvider {

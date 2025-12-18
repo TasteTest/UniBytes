@@ -8,12 +8,7 @@ namespace backend.DTOs.Menu.Response;
 /// </summary>
 public class MenuItemResponseDto
 {
-    /// <summary>Internal use only - not serialized to JSON</summary>
-    [JsonIgnore]
     public Guid Id { get; init; }
-    
-    /// <summary>Internal use only - not serialized to JSON</summary>
-    [JsonIgnore]
     public Guid CategoryId { get; init; }
     
     public string Name { get; init; } = string.Empty;

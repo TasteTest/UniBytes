@@ -50,9 +50,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasDefaultValue(true)
             .IsRequired();
 
-        builder.Property(u => u.IsAdmin)
-            .HasColumnName("is_admin")
-            .HasDefaultValue(false)
+        builder.Property(u => u.Role)
+            .HasColumnName("Role")
+            .HasDefaultValue(Common.Enums.UserRole.User)
             .IsRequired();
 
         builder.Property(u => u.LastLoginAt)

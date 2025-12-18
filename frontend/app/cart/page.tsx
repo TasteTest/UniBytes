@@ -1,17 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingBag, ShieldAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useCartStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { useRole } from "@/lib/hooks/useAdmin"
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore()
   const { toast } = useToast()
+  const { canOrder, isChef, isAdmin } = useRole()
 
   const handleRemoveItem = (id: string) => {
     removeItem(id)
@@ -24,6 +26,26 @@ export default function CartPage() {
   const subtotal = getTotal()
   const tax = subtotal * 0.08 // 8% tax
   const total = subtotal + tax
+
+  // Block Chef/Admin from ordering
+  if (!canOrder && (isChef || isAdmin)) {
+    return (
+      <div className="container py-16">
+        <Card className="max-w-md mx-auto card-glass border-none text-center">
+          <CardContent className="py-12">
+            <ShieldAlert className="h-16 w-16 mx-auto text-orange-500 mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Ordering Not Available</h2>
+            <p className="text-muted-foreground mb-6">
+              {isChef ? "Chef" : "Admin"} accounts cannot place orders. Please use a regular user account to order.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/">Return Home</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (items.length === 0) {
     return (
@@ -108,7 +130,7 @@ export default function CartPage() {
                       {formatCurrency(
                         (item.menuItem.price +
                           item.modifiers.reduce((sum, m) => sum + m.price, 0)) *
-                          item.quantity
+                        item.quantity
                       )}
                     </span>
                   </div>

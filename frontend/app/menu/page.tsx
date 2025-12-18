@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Loader2, LogIn } from "lucide-react"
+import { Search, Plus, Loader2, LogIn, Pencil } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import Image from "next/image"
 import { useSession, signIn } from "next-auth/react"
+import { useRole } from "@/lib/hooks/useAdmin"
+import Link from "next/link"
 
 interface BackendMenuItem {
   id: string
@@ -36,6 +38,7 @@ interface Category {
 
 export default function MenuPage() {
   const { data: session } = useSession()
+  const { canOrder, isAdmin } = useRole()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
@@ -244,16 +247,24 @@ export default function MenuPage() {
                 <span className="text-2xl font-bold text-primary">
                   {formatCurrency(item.price)}
                 </span>
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleAddToCart(item)
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
+                {canOrder ? (
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAddToCart(item)
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                ) : isAdmin ? (
+                  <Link href={`/admin?tab=menu&edit=${item.id}`} onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="outline">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                ) : null}
               </CardFooter>
             </div>
           </Card>
@@ -286,16 +297,29 @@ export default function MenuPage() {
                   <span className="text-3xl font-bold text-primary">
                     {formatCurrency(selectedItem.price)}
                   </span>
-                  <Button
-                    size="lg"
-                    onClick={() => {
-                      handleAddToCart(selectedItem)
-                      setSelectedItem(null)
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </Button>
+                  {canOrder ? (
+                    <Button
+                      size="lg"
+                      onClick={() => {
+                        handleAddToCart(selectedItem)
+                        setSelectedItem(null)
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add to Cart
+                    </Button>
+                  ) : isAdmin ? (
+                    <Link href={`/admin?tab=menu&edit=${selectedItem.id}`}>
+                      <Button size="lg" variant="outline">
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Item
+                      </Button>
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      View only mode
+                    </span>
+                  )}
                 </div>
               </div>
             </>

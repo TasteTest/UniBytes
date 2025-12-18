@@ -20,4 +20,6 @@ public interface IUserService
     Task<Result<UserResponse>> UpdateAsync(Guid id, UpdateUserRequest updateRequest, CancellationToken cancellationToken = default);
     Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Result> UpdateLastLoginAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Result<UserResponse>> SetUserRoleAsync(Guid userId, Common.Enums.UserRole newRole, CancellationToken cancellationToken = default);
 }
+

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
-import { ShoppingCart, Menu, Moon, Sun, User, Home, UtensilsCrossed, History, Award, LogOut } from "lucide-react"
+import { ShoppingCart, Menu, Moon, Sun, User, Home, UtensilsCrossed, History, Award, LogOut, ChefHat, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -25,17 +25,16 @@ export function Navigation() {
   const itemCount = useCartStore((state) => state.getItemCount())
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  // Role: 0=User, 1=Chef, 2=Admin
+  const role = session?.user?.role ?? 0
+  const isChef = role === 1
+  const isAdmin = role === 2
+
   const navLinks = [
     { href: "/", label: "Home", icon: Home },
     { href: "/menu", label: "Menu", icon: UtensilsCrossed },
     { href: "/orders", label: "Orders", icon: History },
     { href: "/loyalty", label: "Rewards", icon: Award },
-  ]
-
-  // Admin/Kitchen links (show only for authenticated users)
-  const adminLinks = [
-    { href: "/kitchen", label: "Kitchen", icon: UtensilsCrossed },
-    { href: "/admin", label: "Admin", icon: User },
   ]
 
   const handleSignOut = async () => {
@@ -63,6 +62,26 @@ export function Navigation() {
               {link.label}
             </Link>
           ))}
+          {/* Kitchen link - visible for Chef only (Chef manages orders) */}
+          {session && isChef && (
+            <Link
+              href="/kitchen"
+              className="text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 text-orange-500"
+            >
+              <ChefHat className="h-4 w-4" />
+              Kitchen
+            </Link>
+          )}
+          {/* Admin link - visible only for Admin */}
+          {session && isAdmin && (
+            <Link
+              href="/admin"
+              className="text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 text-purple-500"
+            >
+              <Shield className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
         </div>
 
         {/* Right Actions */}
@@ -110,6 +129,9 @@ export function Navigation() {
                     <p className="text-xs leading-none text-muted-foreground">
                       {session.user?.email}
                     </p>
+                    {isAdmin && (
+                      <Badge variant="secondary" className="w-fit mt-1 text-xs">Admin</Badge>
+                    )}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -131,18 +153,6 @@ export function Navigation() {
                     Rewards
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Management
-                </DropdownMenuLabel>
-                {adminLinks.map((link) => (
-                  <DropdownMenuItem key={link.href} asChild>
-                    <Link href={link.href}>
-                      <link.icon className="mr-2 h-4 w-4" />
-                      {link.label}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -176,36 +186,32 @@ export function Navigation() {
                     {link.label}
                   </Link>
                 ))}
+                {session && isChef && (
+                  <div className="pt-4 border-t">
+                    <Link
+                      href="/kitchen"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 text-lg font-medium transition-colors hover:text-primary text-orange-500"
+                    >
+                      <ChefHat className="h-5 w-5" />
+                      Kitchen
+                    </Link>
+                  </div>
+                )}
                 {session && (
-                  <>
-                    <div className="pt-4 border-t">
-                      <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">Management</p>
-                      {adminLinks.map((link) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-3 text-lg font-medium transition-colors hover:text-primary mb-3"
-                        >
-                          <link.icon className="h-5 w-5" />
-                          {link.label}
-                        </Link>
-                      ))}
-                    </div>
-                    <div className="pt-4 border-t">
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-lg font-medium"
-                        onClick={() => {
-                          setMobileMenuOpen(false)
-                          handleSignOut()
-                        }}
-                      >
-                        <LogOut className="mr-3 h-5 w-5" />
-                        Sign out
-                      </Button>
-                    </div>
-                  </>
+                  <div className="pt-4 border-t">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-lg font-medium"
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        handleSignOut()
+                      }}
+                    >
+                      <LogOut className="mr-3 h-5 w-5" />
+                      Sign out
+                    </Button>
+                  </div>
                 )}
               </div>
             </SheetContent>

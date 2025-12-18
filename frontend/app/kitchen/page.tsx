@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChefHat, Clock, CheckCircle, Loader2 } from "lucide-react"
+import { ChefHat, Clock, CheckCircle, Loader2, ShieldAlert } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { formatTime, formatCurrency } from "@/lib/utils"
+import { useAdmin } from "@/lib/hooks/useAdmin"
+import Link from "next/link"
 
 interface KitchenOrderItem {
   name: string
@@ -70,6 +72,7 @@ const getStableOrderNumber = (createdAt: string): number => {
 }
 
 export default function KitchenPage() {
+  const { canAccessKitchen, isLoading: roleLoading } = useAdmin()
   const [orders, setOrders] = useState<KitchenOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -218,6 +221,37 @@ export default function KitchenPage() {
   const filterByStation = (station: string) => {
     if (station === "all") return orders
     return orders.filter((o) => getStation(o.orderItems) === station)
+  }
+
+  // Role loading
+  if (roleLoading) {
+    return (
+      <div className="container py-8 flex justify-center items-center h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Access denied for users without kitchen access
+  if (!canAccessKitchen) {
+    return (
+      <div className="container py-8">
+        <Card className="card-glass border-none max-w-md mx-auto">
+          <CardContent className="pt-8 pb-8 text-center">
+            <ShieldAlert className="h-16 w-16 mx-auto text-destructive mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">
+              Only Chef or Admin can access the Kitchen Dashboard.
+            </p>
+            <Link href="/">
+              <Button variant="ghost" className="w-full">
+                Return Home
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (loading) {

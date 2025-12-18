@@ -33,7 +33,7 @@ public class UserRepository(ApplicationDbContext context) : Repository<User>(con
     public async Task<IEnumerable<User>> GetAdminUsersAsync(CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Where(u => u.IsAdmin && u.IsActive)
+            .Where(u => u.Role == Common.Enums.UserRole.Admin && u.IsActive)
             .ToListAsync(cancellationToken);
     }
 

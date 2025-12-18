@@ -135,4 +135,45 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
         var result = await userService.UpdateLastLoginAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
+
+    /// <summary>
+    /// Change a user's role (Admin only)
+    /// </summary>
+    [HttpPut("{id:guid}/role")]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetUserRole(Guid id, [FromBody] SetRoleRequest request, CancellationToken cancellationToken)
+    {
+        // Only Admin can change roles
+        var adminEmail = Request.Headers["X-User-Email"].ToString();
+        if (string.IsNullOrEmpty(adminEmail))
+        {
+            return Unauthorized(new { error = "User email not found in request" });
+        }
+
+        var adminUser = await userService.GetUserEntityByEmailAsync(adminEmail, cancellationToken);
+        if (adminUser == null || adminUser.Role != Common.Enums.UserRole.Admin)
+        {
+            return StatusCode(403, new { error = "Only Admin can change user roles" });
+        }
+
+        // Parse role from request
+        if (!Enum.TryParse<Common.Enums.UserRole>(request.Role, true, out var newRole))
+        {
+            return BadRequest(new { error = "Invalid role. Valid roles: User, Chef, Admin" });
+        }
+
+        var result = await userService.SetUserRoleAsync(id, newRole, cancellationToken);
+        return result.IsSuccess ? Ok(result.Data) : NotFound(result.Error);
+    }
 }
+
+/// <summary>
+/// Request DTO for setting user role
+/// </summary>
+public class SetRoleRequest
+{
+    public string Role { get; set; } = "User";
+}
+
