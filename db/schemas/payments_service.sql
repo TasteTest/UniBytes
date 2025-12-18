@@ -8,12 +8,12 @@ CREATE TABLE IF NOT EXISTS payments (
     order_id UUID, -- reference to Orders service order id
     user_id UUID, -- reference to user service
     amount NUMERIC(12,2) NOT NULL,
-    currency CHAR(3) DEFAULT 'USD',
-    provider VARCHAR(50) NOT NULL DEFAULT 'stripe', -- 'stripe' or 'mock'
+    currency CHAR(3) DEFAULT 'ron',
+    provider INTEGER NOT NULL DEFAULT 0, -- 0=Stripe, 1=Mock (enum int for EF)
     provider_payment_id VARCHAR(255), -- e.g., Stripe PaymentIntent ID
     provider_charge_id VARCHAR(255),
-    status VARCHAR(50) NOT NULL DEFAULT 'processing', -- processing, succeeded, failed, refunded
-    raw_provider_response JSONB,
+    status INTEGER NOT NULL DEFAULT 0, -- 0=Processing, 1=Succeeded, 2=Failed, 3=Refunded, 4=Cancelled (enum int for EF)
+    raw_provider_response TEXT,
     failure_message TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

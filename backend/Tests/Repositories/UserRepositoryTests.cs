@@ -109,10 +109,10 @@ public class UserRepositoryTests : IDisposable
         // Arrange
         var users = new List<User>
         {
-            new User { Id = Guid.NewGuid(), Email = "admin1@example.com", IsAdmin = true, IsActive = true },
-            new User { Id = Guid.NewGuid(), Email = "admin2@example.com", IsAdmin = true, IsActive = true },
-            new User { Id = Guid.NewGuid(), Email = "user@example.com", IsAdmin = false, IsActive = true },
-            new User { Id = Guid.NewGuid(), Email = "inactiveadmin@example.com", IsAdmin = true, IsActive = false }
+            new User { Id = Guid.NewGuid(), Email = "admin1@example.com", Role = UserRole.Admin, IsActive = true },
+            new User { Id = Guid.NewGuid(), Email = "admin2@example.com", Role = UserRole.Admin, IsActive = true },
+            new User { Id = Guid.NewGuid(), Email = "user@example.com", Role = UserRole.User, IsActive = true },
+            new User { Id = Guid.NewGuid(), Email = "inactiveadmin@example.com", Role = UserRole.Admin, IsActive = false }
         };
         await _context.Users.AddRangeAsync(users);
         await _context.SaveChangesAsync();
@@ -123,7 +123,7 @@ public class UserRepositoryTests : IDisposable
         // Assert
         var enumerable = result.ToList();
         enumerable.Should().HaveCount(2);
-        enumerable.All(u => u is { IsAdmin: true, IsActive: true }).Should().BeTrue();
+        enumerable.All(u => u is { Role: UserRole.Admin, IsActive: true }).Should().BeTrue();
     }
 
     [Fact]

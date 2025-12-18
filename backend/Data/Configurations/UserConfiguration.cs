@@ -51,7 +51,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired();
 
         builder.Property(u => u.Role)
-            .HasColumnName("Role")
+            .HasColumnName("role")
             .HasDefaultValue(Common.Enums.UserRole.User)
             .IsRequired();
 

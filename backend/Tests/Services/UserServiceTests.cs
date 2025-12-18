@@ -264,7 +264,7 @@ public class UserServiceTests
         // Arrange
         var users = new List<User>
         {
-            new User { Id = Guid.NewGuid(), Email = "admin@example.com", IsAdmin = true }
+            new User { Id = Guid.NewGuid(), Email = "admin@example.com", Role = backend.Common.Enums.UserRole.Admin }
         };
 
         var userResponses = new List<UserResponse>
