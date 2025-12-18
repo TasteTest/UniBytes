@@ -5,6 +5,7 @@ using backend.DTOs.Order.Request;
 using backend.DTOs.Order.Response;
 using backend.Services.Interfaces;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -14,12 +15,21 @@ namespace Backend.Tests.Controllers;
 public class OrderControllerTests
 {
     private readonly Mock<IOrderService> _mockOrderService;
+    private readonly Mock<IUserService> _mockUserService;
     private readonly OrdersController _controller;
 
     public OrderControllerTests()
     {
         _mockOrderService = new Mock<IOrderService>();
-        _controller = new OrdersController(_mockOrderService.Object);
+        _mockUserService = new Mock<IUserService>();
+        _controller = new OrdersController(_mockOrderService.Object, _mockUserService.Object);
+        
+        // Setup HttpContext to prevent NullReferenceException when accessing Request.Headers
+        var httpContext = new DefaultHttpContext();
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
     }
 
     #region CreateOrder Tests

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id UUID, -- reference to users service (not enforced cross-db)
     external_user_ref VARCHAR(255), -- optional external ID from auth service
     total_amount NUMERIC(12,2) NOT NULL,
-    currency CHAR(3) DEFAULT 'USD',
+    currency CHAR(3) DEFAULT 'ron',
     payment_status INTEGER NOT NULL DEFAULT 0, -- 0=NotPaid,1=Paid,2=Refunded (enum int)
     order_status INTEGER NOT NULL DEFAULT 0,
     placed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),

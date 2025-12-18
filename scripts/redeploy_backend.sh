@@ -17,6 +17,10 @@ readonly APP_BACKEND="${APP_BACKEND:-unibytes-backend}"
 # Format: "User Id=user;Password=pass;Server=host;Port=5432;Database=db"
 readonly CONNECTION_STRING="${CONNECTION_STRING:-}"
 
+# Stripe configuration (REQUIRED for payments)
+readonly STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-}"
+readonly STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-}"
+
 # Function to extract value from connection string
 extract_from_connection_string() {
     local key=$1
@@ -129,12 +133,20 @@ acr_password=$(az acr credential show --name "$ACR" --query "passwords[0].value"
 # Update backend container app
 log_info "Updating backend Container App..."
 
+# Get current frontend URL first
+log_info "Getting frontend URL for CORS configuration..."
+FRONTEND_URL=$(az containerapp show --name unibytes-frontend --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || echo "unibytes-frontend.placeholder.azurecontainerapps.io")
+log_info "Frontend URL: $FRONTEND_URL"
+
 # Update secrets
 log_info "Updating secrets..."
 az containerapp secret set \
     --name "$APP_BACKEND" \
     --resource-group "$RG" \
-    --secrets "postgres-password=$POSTGRES_PASSWORD" \
+    --secrets \
+        "postgres-password=$POSTGRES_PASSWORD" \
+        "stripe-secret-key=$STRIPE_SECRET_KEY" \
+        "stripe-webhook-secret=$STRIPE_WEBHOOK_SECRET" \
     --output none 2>/dev/null || true
 
 # Update container app
@@ -152,6 +164,9 @@ az containerapp update \
         "POSTGRES_DB=$POSTGRES_DB" \
         "POSTGRES_USER=$POSTGRES_USER" \
         "POSTGRES_PASSWORD=secretref:postgres-password" \
+        "FRONTEND_URL=https://$FRONTEND_URL" \
+        "Stripe__SecretKey=secretref:stripe-secret-key" \
+        "Stripe__WebhookSecret=secretref:stripe-webhook-secret" \
     --output none 2>/dev/null || {
         log_warning "Update had issues, but may still work"
     }

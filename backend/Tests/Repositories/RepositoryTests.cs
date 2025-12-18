@@ -131,7 +131,7 @@ public class RepositoryTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.FindAsync(u => u.IsAdmin);
+        var result = await _repository.FindAsync(u => u.Role == backend.Common.Enums.UserRole.Admin);
 
         // Assert
         result.Should().BeEmpty();

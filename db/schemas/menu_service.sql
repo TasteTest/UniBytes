@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS menu_items (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price NUMERIC(10,2) NOT NULL,
-    currency CHAR(3) DEFAULT 'USD',
+    currency CHAR(3) DEFAULT 'ron',
     available BOOLEAN NOT NULL DEFAULT TRUE,
-    visibility INTEGER NOT NULL DEFAULT 0, -- 0=Public,1=Private,2=Unlisted (enum int for EF)
+    visibility INTEGER NOT NULL DEFAULT 1, -- 0=Public,1=Private,2=Unlisted (enum int for EF)
     components JSONB DEFAULT '[]', -- structured data for build-your-own items
     image_url VARCHAR(1024), -- URL to menu item image
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

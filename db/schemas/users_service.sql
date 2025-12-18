@@ -1,6 +1,7 @@
 -- Users service schema
 -- Enum values stored as integers for Entity Framework compatibility
 -- oauth_provider_type: 0=Google, 1=GitHub, 2=LinkedIn, 3=Facebook
+-- user_role: 0=User, 1=Chef, 2=Admin
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto; -- for gen_random_uuid()
 
@@ -13,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     location VARCHAR(100),
     avatar_url TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    role INTEGER NOT NULL DEFAULT 0,
     last_login_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()

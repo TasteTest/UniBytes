@@ -71,7 +71,7 @@ public class AuthServiceTests
             FirstName = "John",
             LastName = "Doe",
             IsActive = true,
-            IsAdmin = false
+            Role = UserRole.User
         };
 
         var existingOAuthProvider = new OAuthProvider
@@ -330,7 +330,7 @@ public class AuthServiceTests
             LastName = null,
             AvatarUrl = null,
             IsActive = true,
-            IsAdmin = false
+            Role = UserRole.User
         };
 
         var existingOAuthProvider = new OAuthProvider
