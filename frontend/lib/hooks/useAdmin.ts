@@ -13,7 +13,7 @@ interface UseRoleReturn {
     isUser: boolean
     isChef: boolean
     isAdmin: boolean
-    canAccessKitchen: boolean // Chef or Admin
+    canAccessKitchen: boolean // Chef only (Admin manages users/menu)
     canOrder: boolean // Only User
     isLoading: boolean
 }
@@ -27,7 +27,7 @@ export const useRole = (): UseRoleReturn => {
         isUser: role === 0,
         isChef: role === 1,
         isAdmin: role === 2,
-        canAccessKitchen: role === 1 || role === 2, // Chef or Admin
+        canAccessKitchen: role === 1, // Chef only (Admin manages users/menu)
         canOrder: role === 0, // Only User can order
         isLoading: status === 'loading'
     }

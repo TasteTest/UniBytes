@@ -79,14 +79,14 @@ public class OrdersController(IOrderService orderService, IUserService userServi
         if (request == null)
             return BadRequest("Status data is missing.");
         
-        // Chef/Admin authorization check
+        // Chef only authorization check (Admin manages users/menu, Chef manages orders)
         var userEmail = Request.Headers["X-User-Email"].ToString();
         if (!string.IsNullOrEmpty(userEmail))
         {
             var user = await userService.GetUserEntityByEmailAsync(userEmail, ct);
-            if (user == null || (user.Role != Common.Enums.UserRole.Chef && user.Role != Common.Enums.UserRole.Admin))
+            if (user == null || user.Role != Common.Enums.UserRole.Chef)
             {
-                return StatusCode(403, new { error = "Only Chef or Admin can update order status" });
+                return StatusCode(403, new { error = "Only Chef can update order status" });
             }
         }
         

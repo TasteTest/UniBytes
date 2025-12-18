@@ -27,7 +27,7 @@ export function Navigation() {
 
   // Role: 0=User, 1=Chef, 2=Admin
   const role = session?.user?.role ?? 0
-  const canAccessKitchen = role === 1 || role === 2 // Chef or Admin
+  const isChef = role === 1
   const isAdmin = role === 2
 
   const navLinks = [
@@ -62,8 +62,8 @@ export function Navigation() {
               {link.label}
             </Link>
           ))}
-          {/* Kitchen link - visible for Chef or Admin */}
-          {session && canAccessKitchen && (
+          {/* Kitchen link - visible for Chef only (Chef manages orders) */}
+          {session && isChef && (
             <Link
               href="/kitchen"
               className="text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 text-orange-500"
@@ -186,7 +186,7 @@ export function Navigation() {
                     {link.label}
                   </Link>
                 ))}
-                {session && canAccessKitchen && (
+                {session && isChef && (
                   <div className="pt-4 border-t">
                     <Link
                       href="/kitchen"
