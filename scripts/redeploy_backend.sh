@@ -21,6 +21,9 @@ readonly CONNECTION_STRING="${CONNECTION_STRING:-}"
 readonly STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-}"
 readonly STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-}"
 
+# OpenRouter API Key for AI recommendations
+readonly OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
+
 # Function to extract value from connection string
 extract_from_connection_string() {
     local key=$1
@@ -147,6 +150,7 @@ az containerapp secret set \
         "postgres-password=$POSTGRES_PASSWORD" \
         "stripe-secret-key=$STRIPE_SECRET_KEY" \
         "stripe-webhook-secret=$STRIPE_WEBHOOK_SECRET" \
+        "openrouter-api-key=$OPENROUTER_API_KEY" \
     --output none 2>/dev/null || true
 
 # Update container app
@@ -167,6 +171,7 @@ az containerapp update \
         "FRONTEND_URL=https://$FRONTEND_URL" \
         "Stripe__SecretKey=secretref:stripe-secret-key" \
         "Stripe__WebhookSecret=secretref:stripe-webhook-secret" \
+        "OPENROUTER_API_KEY=secretref:openrouter-api-key" \
     --output none 2>/dev/null || {
         log_warning "Update had issues, but may still work"
     }

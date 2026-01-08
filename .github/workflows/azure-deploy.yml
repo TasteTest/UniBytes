@@ -23,6 +23,7 @@ jobs:
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       # Azure configuration
       RG: ${{ secrets.AZURE_RESOURCE_GROUP }}
       ENV_NAME: ${{ secrets.AZURE_CONTAINERAPPS_ENV }}
@@ -118,6 +119,7 @@ jobs:
                 "postgres-password=$POSTGRES_PASSWORD" \
                 "stripe-secret-key=$STRIPE_SECRET_KEY" \
                 "stripe-webhook-secret=$STRIPE_WEBHOOK_SECRET" \
+                "openrouter-api-key=$OPENROUTER_API_KEY" \
               --output none || true
 
             # Prepare registry credentials JSON and update app (use --set to update registries)
@@ -141,6 +143,7 @@ jobs:
                 "FRONTEND_URL=https://$FRONTEND_URL" \
                 "Stripe__SecretKey=secretref:stripe-secret-key" \
                 "Stripe__WebhookSecret=secretref:stripe-webhook-secret" \
+                "OPENROUTER_API_KEY=secretref:openrouter-api-key" \
               --output none
           else
             echo "Creating new backend app..."
@@ -162,6 +165,7 @@ jobs:
                 "postgres-password=$POSTGRES_PASSWORD" \
                 "stripe-secret-key=$STRIPE_SECRET_KEY" \
                 "stripe-webhook-secret=$STRIPE_WEBHOOK_SECRET" \
+                "openrouter-api-key=$OPENROUTER_API_KEY" \
               --env-vars \
                 "STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT" \
                 "BLOB_CONTAINER_NAME=uploads" \
@@ -174,6 +178,7 @@ jobs:
                 "FRONTEND_URL=https://$FRONTEND_URL" \
                 "Stripe__SecretKey=secretref:stripe-secret-key" \
                 "Stripe__WebhookSecret=secretref:stripe-webhook-secret" \
+                "OPENROUTER_API_KEY=secretref:openrouter-api-key" \
               --output none
           fi
 

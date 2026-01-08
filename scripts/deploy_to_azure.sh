@@ -78,6 +78,9 @@ readonly GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 readonly NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-$(openssl rand -base64 32)}"
 readonly STRIPE_PUBLISHABLE_KEY="${STRIPE_PUBLISHABLE_KEY:-}"
 
+# OpenRouter API Key for AI recommendations
+readonly OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
+
 # Resource sizing (Azure Container Apps requirements)
 readonly BACKEND_CPU="0.25"
 readonly BACKEND_MEM="0.5Gi"
@@ -442,7 +445,9 @@ deploy_backend() {
         az containerapp secret set \
             --name "$APP_BACKEND" \
             --resource-group "$RG" \
-            --secrets "postgres-password=$POSTGRES_PASSWORD" \
+            --secrets \
+                "postgres-password=$POSTGRES_PASSWORD" \
+                "openrouter-api-key=$OPENROUTER_API_KEY" \
             --output none 2>/dev/null || true
         
         # Update the app with new image and env vars
@@ -459,6 +464,7 @@ deploy_backend() {
                 "POSTGRES_DB=$POSTGRES_DB" \
                 "POSTGRES_USER=$POSTGRES_USER" \
                 "POSTGRES_PASSWORD=secretref:postgres-password" \
+                "OPENROUTER_API_KEY=secretref:openrouter-api-key" \
             --output none 2>/dev/null || {
                 log_warning "Backend update had issues, but may still work"
             }
@@ -480,6 +486,7 @@ deploy_backend() {
             --registry-password "$acr_password" \
             --secrets \
                 "postgres-password=$POSTGRES_PASSWORD" \
+                "openrouter-api-key=$OPENROUTER_API_KEY" \
             --env-vars \
                 "STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT" \
                 "BLOB_CONTAINER_NAME=$BLOB_CONTAINER" \
@@ -489,6 +496,7 @@ deploy_backend() {
                 "POSTGRES_DB=$POSTGRES_DB" \
                 "POSTGRES_USER=$POSTGRES_USER" \
                 "POSTGRES_PASSWORD=secretref:postgres-password" \
+                "OPENROUTER_API_KEY=secretref:openrouter-api-key" \
             --output none 2>/dev/null || {
                 log_error "Backend deployment failed"
                 return 1
