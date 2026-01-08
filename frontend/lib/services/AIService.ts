@@ -12,9 +12,21 @@ export interface AIRequest {
     menuType: string;
 }
 
+export interface MenuItemDto {
+    id: string;
+    categoryId: string;
+    name: string;
+    description: string | null;
+    price: number;
+    currency: string;
+    available: boolean;
+    imageUrl: string | null;
+}
+
 export interface AIResponse {
     response: string;
     reasoning?: string;
+    recommendedProducts: MenuItemDto[];
 }
 
 export class AIService {

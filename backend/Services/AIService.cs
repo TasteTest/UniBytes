@@ -57,7 +57,7 @@ public class AIService : IAIService
                         Content = enhancedPrompt
                     }
                 },
-                Reasoning = new OpenRouterReasoning { Enabled = true }
+                Reasoning = new OpenRouterReasoning { Enabled = false }
             };
 
             // Prepare HTTP request
@@ -92,10 +92,65 @@ public class AIService : IAIService
             }
 
             var message = openRouterResponse.Choices[0].Message;
+            
+            // Parse response to extract product IDs
+            var responseText = message.Content;
+            var productIds = new List<Guid>();
+            
+            // Look for PRODUCT_IDS: line in the response
+            var lines = responseText.Split('\n');
+            var productIdLine = lines.FirstOrDefault(l => l.TrimStart().StartsWith("PRODUCT_IDS:", StringComparison.OrdinalIgnoreCase));
+            
+            if (!string.IsNullOrEmpty(productIdLine))
+            {
+                // Extract the IDs part after "PRODUCT_IDS:"
+                var idsText = productIdLine.Substring(productIdLine.IndexOf(':') + 1).Trim();
+                var idStrings = idsText.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                
+                foreach (var idString in idStrings)
+                {
+                    if (Guid.TryParse(idString.Trim(), out var guid))
+                    {
+                        productIds.Add(guid);
+                    }
+                }
+                
+                // Remove the PRODUCT_IDS line from the response text
+                responseText = string.Join('\n', lines.Where(l => !l.TrimStart().StartsWith("PRODUCT_IDS:", StringComparison.OrdinalIgnoreCase)));
+            }
+            
+            // Fetch the recommended products
+            var recommendedProducts = new List<DTOs.Menu.Response.MenuItemResponseDto>();
+            if (productIds.Any())
+            {
+                foreach (var productId in productIds)
+                {
+                    var product = menuItems.FirstOrDefault(m => m.Id == productId);
+                    if (product != null)
+                    {
+                        recommendedProducts.Add(new DTOs.Menu.Response.MenuItemResponseDto
+                        {
+                            Id = product.Id,
+                            CategoryId = product.CategoryId,
+                            Name = product.Name,
+                            Description = product.Description,
+                            Price = product.Price,
+                            Currency = product.Currency,
+                            Available = product.Available,
+                            Visibility = product.Visibility,
+                            Components = product.Components,
+                            ImageUrl = product.ImageUrl,
+                            CreatedAt = product.CreatedAt,
+                            UpdatedAt = product.UpdatedAt
+                        });
+                    }
+                }
+            }
+            
             var aiResponse = new AIResponse
             {
-                Response = message.Content,
-                Reasoning = message.Reasoning
+                Response = responseText.Trim(),
+                RecommendedProducts = recommendedProducts
             };
 
             return Result<AIResponse>.Success(aiResponse);
@@ -135,7 +190,7 @@ public class AIService : IAIService
             prompt.AppendLine($"## {category.Key}");
             foreach (var item in category.OrderBy(i => i.Name))
             {
-                prompt.AppendLine($"- {item.Name} - {item.Price:F2} {item.Currency.ToUpper()}");
+                prompt.AppendLine($"- {item.Name} (ID: {item.Id}) - {item.Price:F2} {item.Currency.ToUpper()}");
                 if (!string.IsNullOrEmpty(item.Description))
                 {
                     prompt.AppendLine($"  Description: {item.Description}");
@@ -196,6 +251,12 @@ public class AIService : IAIService
         prompt.AppendLine("7. **Format recommendations as**:");
         prompt.AppendLine("   - Item Name (Price RON) - Why this fits your goals");
         prompt.AppendLine("8. **If constraints are too restrictive** and you can't find enough suitable items, explain the issue and suggest the best available options");
+        prompt.AppendLine();
+        
+        prompt.AppendLine("# OUTPUT FORMAT");
+        prompt.AppendLine("After your recommendation text, you MUST include a line starting with 'PRODUCT_IDS:' followed by the comma-separated GUIDs of the products you recommended.");
+        prompt.AppendLine("Example:");
+        prompt.AppendLine("PRODUCT_IDS: 12345678-1234-1234-1234-123456789abc, 87654321-4321-4321-4321-cba987654321");
         prompt.AppendLine();
 
         prompt.AppendLine("Generate the personalized menu recommendation now, following ALL rules and preferences above.");

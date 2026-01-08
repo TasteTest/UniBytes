@@ -129,7 +129,6 @@ public class AIServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
         result.Data!.Response.Should().Contain("menu items");
-        result.Data.Reasoning.Should().BeNull();
     }
 
     [Fact]

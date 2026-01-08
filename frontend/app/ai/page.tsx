@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Sparkles, Loader2, Utensils, Heart, AlertCircle, Cookie } from "lucide-react"
+import { Sparkles, Loader2, Utensils, Heart, AlertCircle, Cookie, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import {
     Select,
     SelectContent,
@@ -16,8 +17,13 @@ import {
     SelectValue
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AIService, AIRequest } from "@/lib/services/AIService"
+import { AIService, AIRequest, MenuItemDto } from "@/lib/services/AIService"
 import { useToast } from "@/hooks/use-toast"
+import { useCartStore, type MenuItem } from "@/lib/store"
+import { formatCurrency } from "@/lib/utils"
+import Image from "next/image"
+import { useSession } from "next-auth/react"
+import { useRole } from "@/lib/hooks/useAdmin"
 
 const DIETARY_GOALS = [
     "Weight Loss",
@@ -58,6 +64,9 @@ const MENU_TYPES = [
 ]
 
 export default function AIPage() {
+    const { data: session } = useSession()
+    const { canOrder } = useRole()
+    const addItem = useCartStore((state) => state.addItem)
     const [formData, setFormData] = useState({
         dietaryGoal: "General Health",
         dietaryRestrictions: [] as string[],
@@ -68,7 +77,7 @@ export default function AIPage() {
         menuType: "Light Meal (3-4 items)"
     })
 
-    const [response, setResponse] = useState<{ text: string; reasoning?: string } | null>(null)
+    const [response, setResponse] = useState<{ text: string; reasoning?: string; products: MenuItemDto[] } | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { toast } = useToast()
@@ -103,7 +112,8 @@ export default function AIPage() {
 
             setResponse({
                 text: result.response,
-                reasoning: result.reasoning
+                reasoning: result.reasoning,
+                products: result.recommendedProducts || []
             })
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to get menu recommendations"
@@ -116,6 +126,42 @@ export default function AIPage() {
         } finally {
             setIsLoading(false)
         }
+    }
+
+    const handleAddToCart = (product: MenuItemDto) => {
+        if (!session?.user) {
+            toast({
+                title: "Sign in required",
+                description: "Please sign in to add items to your cart",
+                variant: "destructive"
+            })
+            return
+        }
+
+        const menuItem: MenuItem = {
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: product.price,
+            currency: product.currency || 'RON',
+            category: 'Recommended',
+            available: product.available,
+            image: product.imageUrl || undefined,
+            preparationTime: 10
+        }
+
+        addItem({
+            id: `cart-${Date.now()}`,
+            menuItem,
+            quantity: 1,
+            modifiers: [],
+        })
+
+        toast({
+            title: "Added to cart",
+            description: `${product.name} has been added to your cart`,
+            variant: "success",
+        })
     }
 
     return (
@@ -289,44 +335,115 @@ export default function AIPage() {
 
                 {/* Response Section */}
                 {(response || error) && (
-                    <Card className="card-glass">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Cookie className="h-5 w-5 text-primary" />
-                                Your Personalized Menu
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {error && (
-                                <Alert variant="destructive">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertDescription>{error}</AlertDescription>
-                                </Alert>
-                            )}
+                    <>
+                        <Card className="card-glass">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Cookie className="h-5 w-5 text-primary" />
+                                    Your Personalized Menu
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {error && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription>{error}</AlertDescription>
+                                    </Alert>
+                                )}
 
-                            {response && (
-                                <div className="space-y-4">
-                                    <div className="prose dark:prose-invert max-w-none">
-                                        <div className="text-base leading-relaxed whitespace-pre-wrap bg-muted/30 p-4 rounded-lg">
-                                            {response.text}
+                                {response && (
+                                    <div className="space-y-4">
+                                        <div className="prose dark:prose-invert max-w-none">
+                                            <div className="text-base leading-relaxed whitespace-pre-wrap bg-muted/30 p-4 rounded-lg">
+                                                {response.text}
+                                            </div>
                                         </div>
+
+                                        {response.reasoning && (
+                                            <div className="border-t pt-4">
+                                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                                    <Sparkles className="h-4 w-4 text-muted-foreground" />
+                                                    AI Reasoning
+                                                </h4>
+                                                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
+                                                    {response.reasoning}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                                    {response.reasoning && (
-                                        <div className="border-t pt-4">
-                                            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                                                <Sparkles className="h-4 w-4 text-muted-foreground" />
-                                                AI Reasoning
-                                            </h4>
-                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
-                                                {response.reasoning}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                        {/* Product Grid */}
+                        {response && response.products && response.products.length > 0 && (
+                            <Card className="card-glass">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Utensils className="h-5 w-5 text-primary" />
+                                        Recommended Products
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Click on any item to add it to your cart
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {response.products.map((product) => (
+                                            <Card
+                                                key={product.id}
+                                                className="card-glass border-none group"
+                                            >
+                                                <div className="flex flex-col h-full">
+                                                    <div className="relative w-full h-44 overflow-hidden rounded-t-xl bg-muted">
+                                                        {product.imageUrl ? (
+                                                            <Image
+                                                                src={product.imageUrl}
+                                                                alt={product.name}
+                                                                fill
+                                                                sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                                                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                                                priority={false}
+                                                            />
+                                                        ) : (
+                                                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+                                                                No image
+                                                            </div>
+                                                        )}
+                                                        <Badge variant="secondary" className="absolute top-3 right-3">
+                                                            AI Recommended
+                                                        </Badge>
+                                                    </div>
+                                                    <CardHeader className="pb-0">
+                                                        <CardTitle className="group-hover:text-primary transition-colors">
+                                                            {product.name}
+                                                        </CardTitle>
+                                                        <CardDescription className="mt-1 line-clamp-2">
+                                                            {product.description || 'No description available'}
+                                                        </CardDescription>
+                                                    </CardHeader>
+                                                    <CardFooter className="mt-auto flex items-center justify-between pt-4">
+                                                        <span className="text-2xl font-bold text-primary">
+                                                            {formatCurrency(product.price)}
+                                                        </span>
+                                                        {canOrder && (
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleAddToCart(product)}
+                                                            >
+                                                                <Plus className="h-4 w-4 mr-1" />
+                                                                Add
+                                                            </Button>
+                                                        )}
+                                                    </CardFooter>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </>
                 )}
 
                 {/* Loading State */}

@@ -1,3 +1,5 @@
+using backend.DTOs.Menu.Response;
+
 namespace backend.DTOs.AI.Response;
 
 /// <summary>
@@ -11,7 +13,7 @@ public class AIResponse
     public string Response { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional reasoning from the AI model.
+    /// List of recommended menu items based on AI recommendations.
     /// </summary>
-    public string? Reasoning { get; set; }
+    public List<MenuItemResponseDto> RecommendedProducts { get; set; } = new();
 }

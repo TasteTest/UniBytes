@@ -40,8 +40,7 @@ public class AIControllerTests
 
         var aiResponse = new AIResponse
         {
-            Response = "We have a variety of menu items including beverages, main courses, and desserts.",
-            Reasoning = null
+            Response = "We have a variety of menu items including beverages, main courses, and desserts."
         };
 
         _mockAIService.Setup(x => x.GetMenuRecommendationsAsync(request, It.IsAny<CancellationToken>()))
@@ -58,7 +57,7 @@ public class AIControllerTests
     }
 
     [Fact]
-    public async Task Chat_WithValidRequestIncludingReasoning_ReturnsOkWithReasoningIncluded()
+    public async Task Chat_WithValidRequest_ReturnsOk()
     {
         // Arrange
         var request = new AIRequest
@@ -72,8 +71,7 @@ public class AIControllerTests
 
         var aiResponse = new AIResponse
         {
-            Response = "Based on your preferences, I recommend: Salad (12.50 RON), Fruit Bowl (8.00 RON)",
-            Reasoning = "Selected low-calorie vegetarian options suitable for weight loss."
+            Response = "Based on your preferences, I recommend: Salad (12.50 RON), Fruit Bowl (8.00 RON)"
         };
 
         _mockAIService.Setup(x => x.GetMenuRecommendationsAsync(request, It.IsAny<CancellationToken>()))
@@ -87,7 +85,7 @@ public class AIControllerTests
         var okResult = result as OkObjectResult;
         var response = okResult!.Value as AIResponse;
         response.Should().NotBeNull();
-        response!.Reasoning.Should().NotBeNullOrEmpty();
+        response!.Response.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -207,8 +205,7 @@ public class AIControllerTests
 
         var aiResponse = new AIResponse
         {
-            Response = "High-protein meal recommendations",
-            Reasoning = null
+            Response = "High-protein meal recommendations"
         };
 
         _mockAIService.Setup(x => x.GetMenuRecommendationsAsync(request, It.IsAny<CancellationToken>()))
@@ -272,8 +269,7 @@ public class AIControllerTests
 
         var aiResponse = new AIResponse
         {
-            Response = "Processed request with detailed preferences",
-            Reasoning = null
+            Response = "Produced request with detailed preferences"
         };
 
         _mockAIService.Setup(x => x.GetMenuRecommendationsAsync(request, It.IsAny<CancellationToken>()))
