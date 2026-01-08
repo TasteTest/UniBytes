@@ -6,6 +6,9 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace Backend.Tests.Services;
 
@@ -26,6 +29,16 @@ public class AzureBlobStorageServiceTests
         _blobStorageService = new AzureBlobStorageService(
             _mockContainerWrapper.Object,
             _mockLogger.Object);
+    }
+
+    // Helper method to create a minimal valid JPEG image for testing
+    private static MemoryStream CreateTestImage(int width = 100, int height = 100)
+    {
+        using var image = new Image<Rgba32>(width, height);
+        var stream = new MemoryStream();
+        image.Save(stream, new JpegEncoder());
+        stream.Position = 0;
+        return stream;
     }
 
     #region UploadImageAsync Tests
@@ -53,7 +66,7 @@ public class AzureBlobStorageServiceTests
     public async Task UploadImageAsync_ValidStream_ReturnsSuccessWithUrl()
     {
         // Arrange
-        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+        using var stream = CreateTestImage();
         var fileName = "test.jpg";
         var expectedUri = new Uri("https://teststorage.blob.core.windows.net/container/guid_test.jpg");
 
@@ -109,7 +122,7 @@ public class AzureBlobStorageServiceTests
     public async Task UploadImageAsync_GeneratesUniqueBlobName()
     {
         // Arrange
-        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+        using var stream = CreateTestImage();
         var fileName = "myimage.png";
         string? capturedBlobName = null;
 
@@ -261,7 +274,7 @@ public class AzureBlobStorageServiceTests
     public async Task UploadImageAsync_PassesCancellationToken()
     {
         // Arrange
-        using var stream = new MemoryStream();
+        using var stream = CreateTestImage();
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
 
