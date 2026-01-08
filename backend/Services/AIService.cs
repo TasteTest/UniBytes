@@ -57,7 +57,7 @@ public class AIService : IAIService
                         Content = enhancedPrompt
                     }
                 },
-                Reasoning = new OpenRouterReasoning { Enabled = false }
+                Reasoning = new OpenRouterReasoning { Enabled = true }
             };
 
             // Prepare HTTP request
