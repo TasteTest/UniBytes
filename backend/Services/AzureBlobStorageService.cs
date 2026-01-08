@@ -1,6 +1,9 @@
 using Azure.Storage.Blobs.Models;
 using backend.Common;
 using backend.Services.Interfaces;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace backend.Services;
 
@@ -8,6 +11,8 @@ public class AzureBlobStorageService : IBlobStorageService
 {
     private readonly IBlobContainerClientWrapper _containerWrapper;
     private readonly ILogger<AzureBlobStorageService> _logger;
+    private const int ThumbnailWidth = 400;
+    private const int JpegQuality = 85;
 
     public AzureBlobStorageService(IBlobContainerClientWrapper containerWrapper, ILogger<AzureBlobStorageService> logger)
     {
@@ -25,8 +30,27 @@ public class AzureBlobStorageService : IBlobStorageService
         try
         {
             var blobName = $"{Guid.NewGuid()}_{fileName}";
-            await _containerWrapper.UploadAsync(blobName, imageStream, new BlobHttpHeaders { ContentType = "image/jpeg" }, ct);
+            
+            // Generate thumbnail
+            using var image = await Image.LoadAsync(imageStream, ct);
+            
+            // Resize to thumbnail width while maintaining aspect ratio
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(ThumbnailWidth, 0), // Height will be calculated automatically
+                Mode = ResizeMode.Max
+            }));
+            
+            // Upload thumbnail to blob storage
+            using var thumbnailStream = new MemoryStream();
+            await image.SaveAsync(thumbnailStream, new JpegEncoder { Quality = JpegQuality }, ct);
+            thumbnailStream.Position = 0;
+            
+            await _containerWrapper.UploadAsync(blobName, thumbnailStream, new BlobHttpHeaders { ContentType = "image/jpeg" }, ct);
             var uri = _containerWrapper.GetBlobUri(blobName);
+            
+            _logger.LogInformation("Uploaded thumbnail for {FileName} with size {Width}x{Height}", 
+                fileName, image.Width, image.Height);
             
             return Result<string>.Success(uri.ToString());
         }
