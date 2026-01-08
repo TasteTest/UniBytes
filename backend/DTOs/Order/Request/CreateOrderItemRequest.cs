@@ -6,10 +6,12 @@ namespace backend.DTOs.Order.Request;
 /// DTO for creating an order item
 /// </summary>
 public record CreateOrderItemRequest(
-    Guid MenuItemId,
+    Guid? MenuItemId,
     string Name,
     decimal UnitPrice,
     int Quantity,
-    JsonElement? Modifiers = null
+    JsonElement? Modifiers = null,
+    bool IsReward = false,
+    string? RewardId = null
 );
 

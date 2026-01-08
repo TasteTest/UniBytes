@@ -26,7 +26,7 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
         
         builder.Property(oi => oi.MenuItemId)
             .HasColumnName("menu_item_id")
-            .IsRequired();
+            .IsRequired(false);
         
         builder.Property(oi => oi.Name)
             .HasColumnName("name")
@@ -50,6 +50,16 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             .HasColumnName("total_price")
             .HasPrecision(12, 2)
             .IsRequired();
+        
+        builder.Property(oi => oi.IsReward)
+            .HasColumnName("is_reward")
+            .HasDefaultValue(false)
+            .IsRequired();
+        
+        builder.Property(oi => oi.RewardId)
+            .HasColumnName("reward_id")
+            .HasMaxLength(100)
+            .IsRequired(false);
         
         builder.Property(oi => oi.CreatedAt)
             .HasColumnName("created_at")

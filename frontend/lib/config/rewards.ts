@@ -13,6 +13,11 @@ export const AVAILABLE_REWARDS: Reward[] = [
     pointsRequired: 50,
     rewardType: 'MenuItem',
     available: true,
+    metadata: {
+      addToCart: true,
+      menuItemName: 'Chocolate Chip Cookie',
+      menuItemDescription: 'Freshly baked chocolate chip cookie - Loyalty Reward',
+    },
   },
   {
     id: 'reward-free-drink',
@@ -21,6 +26,11 @@ export const AVAILABLE_REWARDS: Reward[] = [
     pointsRequired: 100,
     rewardType: 'MenuItem',
     available: true,
+    metadata: {
+      addToCart: true,
+      menuItemName: 'Fountain Drink',
+      menuItemDescription: 'Any size fountain drink - Loyalty Reward',
+    },
   },
   {
     id: 'reward-5-off',
@@ -32,6 +42,9 @@ export const AVAILABLE_REWARDS: Reward[] = [
     metadata: {
       discountAmount: 5,
       discountType: 'fixed',
+      addToCart: true,
+      menuItemName: '5 RON Discount',
+      menuItemDescription: 'Loyalty discount - 5 RON off your order',
     },
   },
   {
@@ -43,6 +56,9 @@ export const AVAILABLE_REWARDS: Reward[] = [
     available: true,
     metadata: {
       maxValue: 15,
+      addToCart: true,
+      menuItemName: 'Free Meal Voucher',
+      menuItemDescription: 'Any menu item up to 15 RON - Loyalty Reward',
     },
   },
   {
@@ -55,17 +71,24 @@ export const AVAILABLE_REWARDS: Reward[] = [
     metadata: {
       discountPercent: 10,
       discountType: 'percentage',
+      addToCart: true,
+      menuItemName: '10% Discount',
+      menuItemDescription: 'Loyalty discount - 10% off your entire order',
     },
   },
   {
     id: 'reward-free-dessert',
     name: 'Free Dessert',
-    description: 'Any dessert item',
+    description: 'Get any dessert item free (applies to cheapest dessert in cart)',
     pointsRequired: 150,
-    rewardType: 'MenuItem',
+    rewardType: 'CategoryDiscount',
     available: true,
     metadata: {
-      maxValue: 15, // Assuming a reasonable max value for dessert
+      targetCategory: 'Desserts',
+      discountType: 'freeItem',
+      addToCart: true,
+      menuItemName: 'Free Dessert Voucher',
+      menuItemDescription: 'Applies to the cheapest dessert in your cart',
     },
   },
 ]

@@ -17,13 +17,24 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useCartStore } from "@/lib/store"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export function Navigation() {
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
-  const itemCount = useCartStore((state) => state.getItemCount())
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Hydration-safe cart count: render 0 on server, update on client after mount
+  const [itemCount, setItemCount] = useState(0)
+  useEffect(() => {
+    // Subscribe to cart changes after hydration
+    const unsubscribe = useCartStore.subscribe((state) => {
+      setItemCount(state.getItemCount())
+    })
+    // Set initial value
+    setItemCount(useCartStore.getState().getItemCount())
+    return unsubscribe
+  }, [])
 
   // Role: 0=User, 1=Chef, 2=Admin
   const role = session?.user?.role ?? 0

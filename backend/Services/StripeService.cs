@@ -84,11 +84,13 @@ public class StripeService : IStripeService
             var createOrderRequest = new DTOs.Order.Request.CreateOrderRequest(
                 userId,
                 request.LineItems.Select(li => new DTOs.Order.Request.CreateOrderItemRequest(
-                    li.MenuItemId ?? Guid.Empty,
+                    li.MenuItemId,
                     li.Name,
                     li.UnitPrice,
                     li.Quantity,
-                    li.Modifiers
+                    li.Modifiers,
+                    li.IsReward,
+                    li.RewardId
                 )).ToList(),
                 request.LineItems.FirstOrDefault()?.Currency?.ToLowerInvariant() ?? "ron",
                 request.Metadata

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useSession, signIn } from "next-auth/react"
-import { Gift, Star, TrendingUp, Award, Loader2 } from "lucide-react"
+import { Gift, Star, TrendingUp, Award, Loader2, ShoppingCart } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { loyaltyService } from "@/lib/api/loyalty"
 import { AVAILABLE_REWARDS } from "@/lib/config/rewards"
+import { useCartStore } from "@/lib/store"
 import type { LoyaltyAccountDetails } from "@/lib/types/loyalty.types"
 
 export default function LoyaltyPage() {
@@ -19,6 +20,7 @@ export default function LoyaltyPage() {
   const [loading, setLoading] = useState(true)
   const [redeeming, setRedeeming] = useState<string | null>(null)
   const { toast } = useToast()
+  const addRewardItem = useCartStore((state) => state.addRewardItem)
 
 
   const userId = session?.user?.backendId || session?.user?.id
@@ -87,10 +89,27 @@ export default function LoyaltyPage() {
         throw new Error(response.error || "Failed to redeem points")
       }
 
-      toast({
-        title: "Success! 🎉",
-        description: `You've redeemed ${rewardName}`,
-      })
+      // Add the reward to the cart
+      if (reward.metadata?.addToCart) {
+        addRewardItem({
+          rewardId: reward.id,
+          rewardName: reward.metadata.menuItemName || reward.name,
+          rewardDescription: reward.metadata.menuItemDescription || reward.description,
+          pointsUsed: points,
+          rewardType: reward.rewardType,
+          metadata: reward.metadata,
+        })
+
+        toast({
+          title: "Success! 🎉",
+          description: `${rewardName} has been added to your cart!`,
+        })
+      } else {
+        toast({
+          title: "Success! 🎉",
+          description: `You've redeemed ${rewardName}`,
+        })
+      }
 
       // Reload data
       await loadLoyaltyData()

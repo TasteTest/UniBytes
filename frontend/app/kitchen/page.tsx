@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChefHat, Clock, CheckCircle, Loader2, ShieldAlert } from "lucide-react"
+import { ChefHat, Clock, CheckCircle, Loader2, ShieldAlert, Gift } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,8 @@ interface KitchenOrderItem {
   quantity: number
   totalPrice: number
   modifiers?: any
+  isReward?: boolean
+  rewardId?: string
 }
 
 interface KitchenOrder {
@@ -166,18 +168,32 @@ export default function KitchenPage() {
               <p className="text-muted-foreground text-sm">No items found</p>
             ) : (
               order.orderItems.map((item, index) => (
-                <div key={index} className="mb-3 last:mb-0">
+                <div key={index} className={`mb-3 last:mb-0 ${item.isReward ? 'bg-primary/10 rounded-lg p-2 -mx-2' : ''}`}>
                   <div className="flex items-start gap-3">
-                    <Badge variant="default" className="mt-0.5 min-w-[40px] justify-center">{item.quantity}x</Badge>
+                    <Badge variant={item.isReward ? "secondary" : "default"} className="mt-0.5 min-w-[40px] justify-center">
+                      {item.quantity}x
+                    </Badge>
                     <div className="flex-1">
-                      <p className="font-bold text-lg">{item.name}</p>
+                      <div className="flex items-center gap-2">
+                        {item.isReward && <Gift className="h-4 w-4 text-primary" />}
+                        <p className="font-bold text-lg">{item.name}</p>
+                        {item.isReward && (
+                          <Badge variant="outline" className="text-xs border-primary text-primary">
+                            REWARD
+                          </Badge>
+                        )}
+                      </div>
                       {item.modifiers && (
                         <div className="mt-1 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded text-sm">
                           <span className="font-medium">Special instructions: </span>
                           {typeof item.modifiers === 'object' ? JSON.stringify(item.modifiers) : item.modifiers}
                         </div>
                       )}
-                      <p className="text-sm text-muted-foreground mt-1">{formatCurrency(item.unitPrice)} × {item.quantity} = {formatCurrency(item.totalPrice)}</p>
+                      {item.isReward ? (
+                        <p className="text-sm text-primary mt-1 font-medium">FREE (Loyalty Reward)</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mt-1">{formatCurrency(item.unitPrice)} × {item.quantity} = {formatCurrency(item.totalPrice)}</p>
+                      )}
                     </div>
                   </div>
                   {index < order.orderItems.length - 1 && <Separator className="mt-3" />}

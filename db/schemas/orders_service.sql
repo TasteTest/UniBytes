@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     quantity INTEGER NOT NULL DEFAULT 1,
     modifiers JSONB DEFAULT '[]',
     total_price NUMERIC(12,2) NOT NULL,
+    is_reward BOOLEAN NOT NULL DEFAULT FALSE,
+    reward_id VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
