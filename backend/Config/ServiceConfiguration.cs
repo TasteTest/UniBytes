@@ -33,6 +33,14 @@ public static class ServiceConfiguration
         // Order services
         services.AddScoped<IOrderService, OrderService>();
 
+        // AI services
+        services.AddScoped<IAIService, AIService>();
+        services.AddHttpClient("OpenRouter", client =>
+        {
+            client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
         return services;
     }
 }

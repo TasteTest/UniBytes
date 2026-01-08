@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
-import { ShoppingCart, Menu, Moon, Sun, User, Home, UtensilsCrossed, History, Award, LogOut, ChefHat, Shield } from "lucide-react"
+import { ShoppingCart, Menu, Moon, Sun, User, Home, UtensilsCrossed, History, Award, LogOut, ChefHat, Shield, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -35,6 +35,7 @@ export function Navigation() {
     { href: "/menu", label: "Menu", icon: UtensilsCrossed },
     { href: "/orders", label: "Orders", icon: History },
     { href: "/loyalty", label: "Rewards", icon: Award },
+    { href: "/ai", label: "AI", icon: Sparkles },
   ]
 
   const handleSignOut = async () => {
