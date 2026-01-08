@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { CreditCard, Clock, MapPin, Loader2 } from "lucide-react"
+import { CreditCard, Clock, MapPin, Loader2, Gift, Percent } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -21,7 +22,7 @@ import type { CheckoutLineItem } from "@/lib/types/payment.types"
 export default function CheckoutPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { items, getTotal, clearCart } = useCartStore()
+  const { items, getTotal, getSubtotal, getDiscount, clearCart, getFreeItems, getDiscountItems } = useCartStore()
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [pickupTime, setPickupTime] = useState("asap")
@@ -29,9 +30,16 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const subtotal = getTotal()
-  const tax = subtotal * 0.08
-  const total = subtotal + tax
+  const freeItems = getFreeItems()
+  const discountItems = getDiscountItems()
+  const subtotal = getSubtotal()
+  const discount = getDiscount()
+  const afterDiscount = getTotal()
+  const tax = afterDiscount * 0.08
+  const total = afterDiscount + tax
+  
+  // Check if there are any items (regular or rewards)
+  const hasItems = items.length > 0 || freeItems.length > 0
 
   const handleContinueToPayment = async () => {
     if (!session?.user) {
@@ -44,7 +52,7 @@ export default function CheckoutPage() {
       return
     }
 
-    if (items.length === 0) {
+    if (!hasItems) {
       toast({
         title: "Cart is empty",
         description: "Please add items to your cart before checkout.",
@@ -56,7 +64,7 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
-      // Prepare line items for Stripe
+      // Prepare line items for Stripe (regular items)
       const lineItems: CheckoutLineItem[] = items.map((item) => ({
         menuItemId: item.menuItem.id,
         name: item.menuItem.name,
@@ -67,6 +75,25 @@ export default function CheckoutPage() {
         imageUrl: item.menuItem.image || undefined,
         modifiers: item.modifiers?.length ? item.modifiers : [],
       }))
+
+      // Add free reward items (MenuItem type) as items with price 0
+      const freeRewardLineItems: CheckoutLineItem[] = freeItems.map((reward) => ({
+        name: reward.rewardName,
+        description: `${reward.rewardDescription} (Loyalty Reward - ${reward.pointsUsed} points)`,
+        unitPrice: 0,
+        quantity: 1,
+        currency: 'RON',
+        modifiers: [],
+        isReward: true,
+        rewardId: reward.rewardId,
+        metadata: {
+          rewardType: reward.rewardType,
+          pointsUsed: reward.pointsUsed,
+          ...reward.metadata,
+        },
+      }))
+
+      const allLineItems = [...lineItems, ...freeRewardLineItems]
 
       // Generate a temporary order ID (in production, create order first)
       const orderId = crypto.randomUUID()
@@ -90,13 +117,24 @@ export default function CheckoutPage() {
         orderId,
         accessToken,
         userEmail,
-        lineItems,
+        lineItems: allLineItems,
         successUrl: `${window.location.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}/checkout`,
         idempotencyKey: `checkout_${Date.now()}_${userEmail}`,
         metadata: {
           pickupLocation: pickupLocation,
-          pickupTime: pickupTime === "asap" ? "ASAP (15-20 min)" : "Scheduled"
+          pickupTime: pickupTime === "asap" ? "ASAP (15-20 min)" : "Scheduled",
+          hasFreeItems: freeItems.length > 0 ? 'true' : 'false',
+          freeItemCount: freeItems.length.toString(),
+          hasDiscount: discount > 0 ? 'true' : 'false',
+          discountAmount: discount.toString(),
+          discountItems: JSON.stringify(discountItems.map(d => ({
+            rewardId: d.rewardId,
+            rewardName: d.rewardName,
+            discountType: d.metadata?.discountType,
+            discountAmount: d.metadata?.discountAmount,
+            discountPercent: d.metadata?.discountPercent,
+          }))),
         }
       })
 
@@ -298,6 +336,31 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                     ))}
+                    {freeItems.map((reward) => (
+                      <div key={reward.rewardId} className="flex justify-between text-sm text-primary">
+                        <span className="flex items-center gap-1">
+                          <Gift className="h-3 w-3" />
+                          {reward.rewardName}
+                          <Badge variant="outline" className="ml-1 text-xs">Free Item</Badge>
+                        </span>
+                        <span>FREE</span>
+                      </div>
+                    ))}
+                    {discountItems.map((reward) => (
+                      <div key={reward.rewardId} className="flex justify-between text-sm text-green-600">
+                        <span className="flex items-center gap-1">
+                          <Percent className="h-3 w-3" />
+                          {reward.rewardName}
+                          <Badge variant="outline" className="ml-1 text-xs border-green-500">Discount</Badge>
+                        </span>
+                        <span>
+                          {reward.metadata?.discountType === 'percentage' 
+                            ? `-${reward.metadata.discountPercent}%`
+                            : `-${formatCurrency(reward.metadata?.discountAmount || 0)}`
+                          }
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <Separator />
@@ -348,6 +411,24 @@ export default function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
+              {freeItems.length > 0 && (
+                <div className="flex justify-between text-sm text-primary">
+                  <span className="flex items-center gap-1">
+                    <Gift className="h-4 w-4" />
+                    Free Items ({freeItems.length})
+                  </span>
+                  <span>FREE</span>
+                </div>
+              )}
+              {discount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Percent className="h-4 w-4" />
+                    Loyalty Discount
+                  </span>
+                  <span>-{formatCurrency(discount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span>Tax</span>
                 <span>{formatCurrency(tax)}</span>

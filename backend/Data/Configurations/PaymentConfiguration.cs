@@ -38,8 +38,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         
         builder.Property(p => p.Provider)
             .HasColumnName("provider")
-            .HasConversion<string>()
-            .HasMaxLength(50)
+            .HasConversion<int>()
             .IsRequired();
         
         builder.Property(p => p.ProviderPaymentId)
@@ -52,8 +51,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         
         builder.Property(p => p.Status)
             .HasColumnName("status")
-            .HasConversion<string>()
-            .HasMaxLength(50)
+            .HasConversion<int>()
             .IsRequired();
         
         builder.Property(p => p.RawProviderResponse)

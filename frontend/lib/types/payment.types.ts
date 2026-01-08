@@ -11,6 +11,9 @@ export interface CheckoutLineItem {
   currency: string
   imageUrl?: string
   modifiers?: any
+  metadata?: Record<string, any>
+  isReward?: boolean
+  rewardId?: string
 }
 
 export interface CreateCheckoutSessionRequest {

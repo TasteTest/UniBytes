@@ -30,5 +30,7 @@ public class CheckoutLineItem
     public string Currency { get; init; } = "ron";
     public string? ImageUrl { get; init; }
     public JsonElement? Modifiers { get; init; }
+    public bool IsReward { get; init; } = false;
+    public string? RewardId { get; init; }
 }
 

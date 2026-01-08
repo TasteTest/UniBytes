@@ -1,19 +1,73 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Minus, Plus, Trash2, ShoppingBag, ShieldAlert } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingBag, ShieldAlert, Gift, Percent, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useRole } from "@/lib/hooks/useAdmin"
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore()
+  // Hydration-safe: only render cart content after component mounts
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const {
+    items,
+    updateQuantity,
+    removeItem,
+    getTotal,
+    getSubtotal,
+    getDiscount,
+    clearCart,
+    getFreeItems,
+    getDiscountItems,
+    removeRewardItem
+  } = useCartStore()
   const { toast } = useToast()
   const { canOrder, isChef, isAdmin } = useRole()
+
+  // Show loading state until hydration is complete
+  if (!mounted) {
+    return (
+      <div className="container py-16 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  const freeItems = getFreeItems()
+  const discountItems = getDiscountItems()
+
+  // Helper to calculate category discount amount for display
+  const getCategoryDiscountAmount = (reward: typeof discountItems[0]) => {
+    if (reward.metadata?.discountType !== 'freeItem') return 0
+    const targetCategory = reward.metadata?.targetCategory?.toLowerCase()
+    if (!targetCategory) return 0
+
+    const matchingItems = items.filter(
+      item => item.menuItem.category?.toLowerCase() === targetCategory
+    )
+    if (matchingItems.length === 0) return 0
+
+    // Find cheapest item
+    const cheapestItem = matchingItems.reduce((min, item) => {
+      const itemPrice = item.menuItem.price +
+        item.modifiers.reduce((sum, mod) => sum + mod.price, 0)
+      const minPrice = min.menuItem.price +
+        min.modifiers.reduce((sum, mod) => sum + mod.price, 0)
+      return itemPrice < minPrice ? item : min
+    })
+    return cheapestItem.menuItem.price +
+      cheapestItem.modifiers.reduce((sum, mod) => sum + mod.price, 0)
+  }
 
   const handleRemoveItem = (id: string) => {
     removeItem(id)
@@ -23,9 +77,22 @@ export default function CartPage() {
     })
   }
 
-  const subtotal = getTotal()
-  const tax = subtotal * 0.08 // 8% tax
-  const total = subtotal + tax
+  const handleRemoveReward = (rewardId: string) => {
+    removeRewardItem(rewardId)
+    toast({
+      title: "Reward removed",
+      description: "Reward has been removed from your cart",
+    })
+  }
+
+  const subtotal = getSubtotal()
+  const discount = getDiscount()
+  const afterDiscount = getTotal()
+  const tax = afterDiscount * 0.08 // 8% tax
+  const total = afterDiscount + tax
+
+  // Check if cart has any items (regular or rewards)
+  const hasItems = items.length > 0 || freeItems.length > 0 || discountItems.length > 0
 
   // Block Chef/Admin from ordering
   if (!canOrder && (isChef || isAdmin)) {
@@ -47,7 +114,7 @@ export default function CartPage() {
     )
   }
 
-  if (items.length === 0) {
+  if (!hasItems) {
     return (
       <div className="container py-16">
         <Card className="max-w-md mx-auto card-glass border-none text-center">
@@ -73,6 +140,7 @@ export default function CartPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Regular Menu Items */}
           {items.map((item) => (
             <Card key={item.id} className="card-glass border-none">
               <CardContent className="p-6">
@@ -138,6 +206,78 @@ export default function CartPage() {
               </CardContent>
             </Card>
           ))}
+
+          {/* Free Reward Items (like Free Cookie, Free Drink) */}
+          {freeItems.map((reward) => (
+            <Card key={reward.rewardId} className="card-glass border-none ring-2 ring-primary/50 bg-primary/5">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Gift className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold text-lg">
+                        {reward.rewardName}
+                      </h3>
+                      <Badge variant="success" className="ml-2">
+                        Free Item
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {reward.rewardDescription}
+                    </p>
+                    <p className="text-xs text-primary">
+                      Redeemed for {reward.pointsUsed} points
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end justify-center">
+                    <span className="font-semibold text-lg text-primary">
+                      FREE
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Discount Reward Items (like 5 RON Off, 10% Off) */}
+          {discountItems.map((reward) => (
+            <Card key={reward.rewardId} className="card-glass border-none ring-2 ring-green-500/50 bg-green-500/5">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Percent className="h-5 w-5 text-green-600" />
+                      <h3 className="font-semibold text-lg">
+                        {reward.rewardName}
+                      </h3>
+                      <Badge variant="outline" className="ml-2 border-green-500 text-green-600">
+                        Discount
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {reward.rewardDescription}
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Redeemed for {reward.pointsUsed} points
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end justify-center">
+                    <span className="font-semibold text-lg text-green-600">
+                      {reward.metadata?.discountType === 'percentage'
+                        ? `-${reward.metadata.discountPercent}%`
+                        : reward.metadata?.discountType === 'freeItem'
+                          ? getCategoryDiscountAmount(reward) > 0
+                            ? `-${formatCurrency(getCategoryDiscountAmount(reward))}`
+                            : 'No qualifying item'
+                          : `-${formatCurrency(reward.metadata?.discountAmount || 0)}`
+                      }
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
           <Button
             variant="outline"
             onClick={() => {
@@ -163,6 +303,24 @@ export default function CartPage() {
                 <span>Subtotal</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
+              {freeItems.length > 0 && (
+                <div className="flex justify-between text-primary">
+                  <span className="flex items-center gap-1">
+                    <Gift className="h-4 w-4" />
+                    Free Items ({freeItems.length})
+                  </span>
+                  <span>FREE</span>
+                </div>
+              )}
+              {discount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Percent className="h-4 w-4" />
+                    Loyalty Discount
+                  </span>
+                  <span>-{formatCurrency(discount)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Tax (8%)</span>
                 <span>{formatCurrency(tax)}</span>

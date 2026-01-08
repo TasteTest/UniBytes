@@ -111,6 +111,8 @@ public class OrderService(
                     Quantity = itemRequest.Quantity,
                     TotalPrice = itemRequest.UnitPrice * itemRequest.Quantity,
                     Modifiers = itemRequest.Modifiers,
+                    IsReward = itemRequest.IsReward,
+                    RewardId = itemRequest.RewardId,
                     CreatedAt = DateTime.UtcNow
                 };
                 
@@ -304,7 +306,9 @@ public class OrderService(
             UnitPrice = oi.UnitPrice,
             Quantity = oi.Quantity,
             TotalPrice = oi.TotalPrice,
-            Modifiers = oi.Modifiers
+            Modifiers = oi.Modifiers,
+            IsReward = oi.IsReward,
+            RewardId = oi.RewardId
         }).ToList()
     };
 }

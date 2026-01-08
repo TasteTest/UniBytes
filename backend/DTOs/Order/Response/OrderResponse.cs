@@ -35,5 +35,7 @@ public class OrderItemResponse
     public int Quantity { get; set; }
     public decimal TotalPrice { get; set; }
     public JsonElement? Modifiers { get; set; }
+    public bool IsReward { get; set; } = false;
+    public string? RewardId { get; set; }
 }
 
