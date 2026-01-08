@@ -77,7 +77,7 @@ export default function AIPage() {
         menuType: "Light Meal (3-4 items)"
     })
 
-    const [response, setResponse] = useState<{ text: string; reasoning?: string; products: MenuItemDto[] } | null>(null)
+    const [response, setResponse] = useState<{ text: string; products: MenuItemDto[] } | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { toast } = useToast()
@@ -112,7 +112,6 @@ export default function AIPage() {
 
             setResponse({
                 text: result.response,
-                reasoning: result.reasoning,
                 products: result.recommendedProducts || []
             })
         } catch (err) {
@@ -358,18 +357,6 @@ export default function AIPage() {
                                                 {response.text}
                                             </div>
                                         </div>
-
-                                        {response.reasoning && (
-                                            <div className="border-t pt-4">
-                                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                                                    <Sparkles className="h-4 w-4 text-muted-foreground" />
-                                                    AI Reasoning
-                                                </h4>
-                                                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/20 p-3 rounded-md">
-                                                    {response.reasoning}
-                                                </p>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </CardContent>

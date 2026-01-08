@@ -25,7 +25,6 @@ export interface MenuItemDto {
 
 export interface AIResponse {
     response: string;
-    reasoning?: string;
     recommendedProducts: MenuItemDto[];
 }
 
