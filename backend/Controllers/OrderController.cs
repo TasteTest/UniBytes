@@ -10,13 +10,15 @@ namespace backend.Controllers;
 public class OrdersController(IOrderService orderService, IUserService userService) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request, CancellationToken ct = default)
+    public async Task<IActionResult> CreateOrder(
+        [FromBody] CreateOrderRequest request,
+        [FromHeader(Name = "X-User-Email")] string? userEmail,
+        CancellationToken ct = default)
     {
         if (request == null) 
             return BadRequest("Order data is missing.");
         
         // Only User role can place orders (Chef/Admin cannot)
-        var userEmail = Request.Headers["X-User-Email"].ToString();
         if (!string.IsNullOrEmpty(userEmail))
         {
             var user = await userService.GetUserEntityByEmailAsync(userEmail, ct);
@@ -74,13 +76,16 @@ public class OrdersController(IOrderService orderService, IUserService userServi
     }
 
     [HttpPut("{id}/status")]
-    public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusRequest request, CancellationToken ct = default)
+    public async Task<IActionResult> UpdateOrderStatus(
+        Guid id,
+        [FromBody] UpdateOrderStatusRequest request,
+        [FromHeader(Name = "X-User-Email")] string? userEmail,
+        CancellationToken ct = default)
     {
         if (request == null)
             return BadRequest("Status data is missing.");
         
         // Chef only authorization check (Admin manages users/menu, Chef manages orders)
-        var userEmail = Request.Headers["X-User-Email"].ToString();
         if (!string.IsNullOrEmpty(userEmail))
         {
             var user = await userService.GetUserEntityByEmailAsync(userEmail, ct);

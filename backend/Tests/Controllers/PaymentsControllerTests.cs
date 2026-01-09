@@ -248,7 +248,7 @@ public class PaymentsControllerTests
         _httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{}"));
 
         // Act
-        var result = await _controller.StripeWebhook(CancellationToken.None);
+        var result = await _controller.StripeWebhook(null, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -269,7 +269,7 @@ public class PaymentsControllerTests
             .ReturnsAsync(Result<PaymentResponse>.Success(payment));
 
         // Act
-        var result = await _controller.StripeWebhook(CancellationToken.None);
+        var result = await _controller.StripeWebhook(signature, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkResult>();
@@ -289,7 +289,7 @@ public class PaymentsControllerTests
             .ReturnsAsync(Result<PaymentResponse>.Failure("Invalid webhook"));
 
         // Act
-        var result = await _controller.StripeWebhook(CancellationToken.None);
+        var result = await _controller.StripeWebhook(signature, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();

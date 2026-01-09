@@ -101,7 +101,7 @@ public class AuthControllerTests
         _httpContext.Request.Headers.Clear();
 
         // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
+        var result = await _controller.GetCurrentUser(null, null, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<UnauthorizedObjectResult>();
@@ -114,7 +114,7 @@ public class AuthControllerTests
         _httpContext.Request.Headers["Authorization"] = "InvalidToken";
 
         // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
+        var result = await _controller.GetCurrentUser("InvalidToken", null, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<UnauthorizedObjectResult>();
@@ -127,7 +127,7 @@ public class AuthControllerTests
         _httpContext.Request.Headers["Authorization"] = "Bearer token123";
 
         // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
+        var result = await _controller.GetCurrentUser("Bearer token123", null, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<UnauthorizedObjectResult>();
@@ -148,7 +148,7 @@ public class AuthControllerTests
             .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
+        var result = await _controller.GetCurrentUser("Bearer token123", email, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<UnauthorizedObjectResult>();
@@ -176,7 +176,7 @@ public class AuthControllerTests
             .ReturnsAsync(user);
 
         // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
+        var result = await _controller.GetCurrentUser("Bearer token123", email, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -198,7 +198,7 @@ public class AuthControllerTests
             .ThrowsAsync(new Exception("Database error"));
 
         // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
+        var result = await _controller.GetCurrentUser("Bearer token123", email, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<UnauthorizedObjectResult>();

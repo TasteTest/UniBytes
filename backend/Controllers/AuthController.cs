@@ -40,21 +40,25 @@ public class AuthController(
     /// Validates an access token and returns user information.
     /// This endpoint is for inter-service communication.
     /// </summary>
+    /// <param name="authorization">Authorization header containing Bearer token.</param>
+    /// <param name="userEmail">User email from the X-User-Email header.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>User information if token is valid.</returns>
     [HttpGet("me")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetCurrentUser(
+        [FromHeader(Name = "Authorization")] string? authorization,
+        [FromHeader(Name = "X-User-Email")] string? userEmail,
+        CancellationToken cancellationToken)
     {
         // Extract token from Authorization header
-        var authHeader = Request.Headers["Authorization"].ToString();
-        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+        if (string.IsNullOrEmpty(authorization) || !authorization.StartsWith("Bearer "))
         {
             return Unauthorized(new { error = "Missing or invalid authorization header" });
         }
 
-        var token = authHeader.Substring("Bearer ".Length).Trim();
+        var token = authorization.Substring("Bearer ".Length).Trim();
         
         // For now, we'll use a simple approach - extract email from the token
         // In production, you should validate the JWT token properly
@@ -68,7 +72,6 @@ public class AuthController(
             
             // Since NextAuth tokens are JWTs, you'd normally validate them
             // For this demo, we'll accept the email from headers as a fallback
-            var userEmail = Request.Headers["X-User-Email"].ToString();
             
             if (string.IsNullOrEmpty(userEmail))
             {

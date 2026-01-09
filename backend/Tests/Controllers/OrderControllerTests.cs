@@ -38,7 +38,7 @@ public class OrderControllerTests
     public async Task CreateOrder_NullRequest_ReturnsBadRequest()
     {
         // Act
-        var result = await _controller.CreateOrder(null!);
+        var result = await _controller.CreateOrder(null!, null);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -76,7 +76,7 @@ public class OrderControllerTests
             .ReturnsAsync(Result<OrderResponse>.Success(response));
 
         // Act
-        var result = await _controller.CreateOrder(request);
+        var result = await _controller.CreateOrder(request, null);
 
         // Assert
         result.Should().BeOfType<CreatedAtActionResult>();
@@ -104,7 +104,7 @@ public class OrderControllerTests
             .ReturnsAsync(Result<OrderResponse>.Failure("Failed to create order"));
 
         // Act
-        var result = await _controller.CreateOrder(request);
+        var result = await _controller.CreateOrder(request, null);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -337,7 +337,7 @@ public class OrderControllerTests
         var orderId = Guid.NewGuid();
 
         // Act
-        var result = await _controller.UpdateOrderStatus(orderId, null!);
+        var result = await _controller.UpdateOrderStatus(orderId, null!, null);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -367,7 +367,7 @@ public class OrderControllerTests
             .ReturnsAsync(Result<OrderResponse>.Success(response));
 
         // Act
-        var result = await _controller.UpdateOrderStatus(orderId, request);
+        var result = await _controller.UpdateOrderStatus(orderId, request, null);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -386,7 +386,7 @@ public class OrderControllerTests
             .ReturnsAsync(Result<OrderResponse>.Failure($"Order with ID {orderId} not found"));
 
         // Act
-        var result = await _controller.UpdateOrderStatus(orderId, request);
+        var result = await _controller.UpdateOrderStatus(orderId, request, null);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
