@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace backend.DTOs.UserAnalytics.Request;
 
@@ -8,6 +9,7 @@ namespace backend.DTOs.UserAnalytics.Request;
 public class CreateUserAnalyticsRequest
 {
     [Required]
+    [JsonRequired]
     public Guid UserId { get; init; }
 
     [Required]

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace backend.DTOs.Order.Request;
 
@@ -6,7 +7,7 @@ namespace backend.DTOs.Order.Request;
 /// DTO for creating an order
 /// </summary>
 public record CreateOrderRequest(
-    Guid UserId,
+    [property: JsonRequired] Guid UserId,
     List<CreateOrderItemRequest> OrderItems,
     string Currency = "ron",
     JsonElement? Metadata = null

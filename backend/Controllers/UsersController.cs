@@ -143,10 +143,13 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SetUserRole(Guid id, [FromBody] SetRoleRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> SetUserRole(
+        Guid id,
+        [FromBody] SetRoleRequest request,
+        [FromHeader(Name = "X-User-Email")] string? adminEmail,
+        CancellationToken cancellationToken)
     {
         // Only Admin can change roles
-        var adminEmail = Request.Headers["X-User-Email"].ToString();
         if (string.IsNullOrEmpty(adminEmail))
         {
             return Unauthorized(new { error = "User email not found in request" });

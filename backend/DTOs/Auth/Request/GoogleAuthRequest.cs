@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using backend.Common.Enums;
 
 namespace backend.DTOs.Auth.Request;
@@ -19,6 +20,7 @@ public class GoogleAuthRequest
     public string? AvatarUrl { get; init; }
 
     [Required]
+    [JsonRequired]
     public OAuthProviderType Provider { get; init; }
 
     [Required]

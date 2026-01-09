@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using backend.Common.Enums;
 
 namespace backend.DTOs.OAuthProvider.Request;
@@ -9,9 +10,11 @@ namespace backend.DTOs.OAuthProvider.Request;
 public class CreateOAuthProviderRequest
 {
     [Required]
+    [JsonRequired]
     public Guid UserId { get; init; }
 
     [Required]
+    [JsonRequired]
     public OAuthProviderType Provider { get; init; }
 
     [Required]
