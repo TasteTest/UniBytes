@@ -2,7 +2,7 @@ name: SonarCloud
 on:
   push:
     branches:
-      - '**'
+      - master
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -63,9 +63,9 @@ jobs:
             /o:"tastetest" `
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
             /d:sonar.sources="backend" `
-            /d:sonar.exclusions="**/frontend/**,**/node_modules/**,**/wwwroot/**" `
+            /d:sonar.exclusions="**/frontend/**,**/node_modules/**,**/wwwroot/**,**/bin/**,**/obj/**,db/**,backlogs/**,scripts/**,docker-compose.yml,**/*.sql,**/*.md,**/.env*" `
             /d:sonar.cs.opencover.reportsPaths="backend\TestResults\**\coverage.opencover.xml" `
-            /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/*.Designer.cs"
+            /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/*.Designer.cs,**/Tests/**"
       
       - name: Build
         shell: powershell
