@@ -13,11 +13,9 @@ namespace backend.Controllers;
 [Route("api/[controller]")]
 [Produces("application/json")]
 public class OAuthProvidersController(
-    IOAuthProviderService oAuthProviderService,
-    ILogger<OAuthProvidersController> logger)
+    IOAuthProviderService oAuthProviderService)
     : ControllerBase
 {
-    private readonly ILogger<OAuthProvidersController> _logger = logger;
 
     /// <summary>
     /// Get OAuth provider by ID

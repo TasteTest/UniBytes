@@ -20,8 +20,7 @@ public class LoyaltyAccountsControllerTests
     public LoyaltyAccountsControllerTests()
     {
         _mockLoyaltyAccountService = new Mock<ILoyaltyAccountService>();
-        var mockLogger = new Mock<ILogger<LoyaltyAccountsController>>();
-        _controller = new LoyaltyAccountsController(_mockLoyaltyAccountService.Object, mockLogger.Object);
+        _controller = new LoyaltyAccountsController(_mockLoyaltyAccountService.Object);
     }
 
     [Fact]

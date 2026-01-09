@@ -23,8 +23,7 @@ public class UsersControllerTests
     public UsersControllerTests()
     {
         _mockUserService = new Mock<IUserService>();
-        var mockLogger = new Mock<ILogger<UsersController>>();
-        _controller = new UsersController(_mockUserService.Object, mockLogger.Object);
+        _controller = new UsersController(_mockUserService.Object);
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

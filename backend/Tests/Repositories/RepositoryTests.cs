@@ -21,6 +21,7 @@ public class RepositoryTests : IDisposable
     public void Dispose()
     {
         _context.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     #region GetByIdAsync Tests

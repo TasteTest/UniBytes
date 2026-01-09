@@ -13,9 +13,8 @@ namespace backend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class UsersController(IUserService userService, ILogger<UsersController> logger) : ControllerBase
+public class UsersController(IUserService userService) : ControllerBase
 {
-    private readonly ILogger<UsersController> _logger = logger;
 
     /// <summary>
     /// Get all users

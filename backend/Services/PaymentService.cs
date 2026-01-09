@@ -20,6 +20,9 @@ public class PaymentService : IPaymentService
     private readonly IStripeServiceWrapper _stripeWrapper;
     private readonly string _frontendUrl;
 
+    // Use empty string as default, or a placeholder that indicates configuration is missing
+    private const string DefaultFrontendUrl = "";
+
     public PaymentService(
         IPaymentRepository paymentRepository, 
         IMapper mapper, 
@@ -33,7 +36,7 @@ public class PaymentService : IPaymentService
         _stripeWrapper = stripeWrapper;
         _frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") 
                        ?? configuration["FrontendUrl"] 
-                       ?? "http://localhost:3000";
+                       ?? DefaultFrontendUrl;
     }
 
     public async Task<Result<PaymentResponse>> GetPaymentByIdAsync(Guid id, CancellationToken cancellationToken = default)

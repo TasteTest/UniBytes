@@ -21,5 +21,5 @@ public interface IStripeServiceWrapper
     /// <summary>
     /// Construct and validate a Stripe webhook event
     /// </summary>
-    Event ConstructWebhookEvent(string json, string stripeSignature, string webhookSecret);
+    Event ConstructWebhookEvent(string json, string stripeSignature);
 }

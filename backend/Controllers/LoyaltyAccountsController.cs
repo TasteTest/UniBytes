@@ -12,11 +12,9 @@ namespace backend.Controllers;
 [Route("api/[controller]")]
 [Produces("application/json")]
 public class LoyaltyAccountsController(
-    ILoyaltyAccountService loyaltyAccountService,
-    ILogger<LoyaltyAccountsController> logger)
+    ILoyaltyAccountService loyaltyAccountService)
     : ControllerBase
 {
-    private readonly ILogger<LoyaltyAccountsController> _logger = logger;
 
     /// <summary>
     /// Get all loyalty accounts

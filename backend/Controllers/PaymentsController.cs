@@ -11,11 +11,9 @@ namespace backend.Controllers;
 [Route("api/payments")]
 public class PaymentsController(
     IPaymentService paymentService,
-    IStripeService stripeService,
-    ILogger<PaymentsController> logger)
+    IStripeService stripeService)
     : ControllerBase
 {
-    private readonly ILogger<PaymentsController> _logger = logger;
 
     /// <summary>
     /// Get payment by ID
