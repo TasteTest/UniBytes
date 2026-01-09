@@ -3,6 +3,7 @@ using backend.Common.Enums;
 using backend.Controllers;
 using backend.DTOs.Order.Request;
 using backend.DTOs.Order.Response;
+using backend.Middleware;
 using backend.Services.Interfaces;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -15,20 +16,19 @@ namespace Backend.Tests.Controllers;
 public class OrderControllerTests
 {
     private readonly Mock<IOrderService> _mockOrderService;
-    private readonly Mock<IUserService> _mockUserService;
     private readonly OrdersController _controller;
+    private readonly DefaultHttpContext _httpContext;
 
     public OrderControllerTests()
     {
         _mockOrderService = new Mock<IOrderService>();
-        _mockUserService = new Mock<IUserService>();
-        _controller = new OrdersController(_mockOrderService.Object, _mockUserService.Object);
+        _controller = new OrdersController(_mockOrderService.Object);
         
         // Setup HttpContext to prevent NullReferenceException when accessing Request.Headers
-        var httpContext = new DefaultHttpContext();
+        _httpContext = new DefaultHttpContext();
         _controller.ControllerContext = new ControllerContext
         {
-            HttpContext = httpContext
+            HttpContext = _httpContext
         };
     }
 
@@ -37,8 +37,16 @@ public class OrderControllerTests
     [Fact]
     public async Task CreateOrder_NullRequest_ReturnsBadRequest()
     {
+        // Arrange - Set up authenticated User role
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "user@test.com",
+            Role = UserRole.User
+        };
+
         // Act
-        var result = await _controller.CreateOrder(null!, null);
+        var result = await _controller.CreateOrder(null!);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -72,11 +80,19 @@ public class OrderControllerTests
             CreatedAt = DateTime.UtcNow
         };
 
+        // Set up authenticated User role
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "user@test.com",
+            Role = UserRole.User
+        };
+
         _mockOrderService.Setup(x => x.CreateAsync(request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<OrderResponse>.Success(response));
 
         // Act
-        var result = await _controller.CreateOrder(request, null);
+        var result = await _controller.CreateOrder(request);
 
         // Assert
         result.Should().BeOfType<CreatedAtActionResult>();
@@ -100,11 +116,19 @@ public class OrderControllerTests
             null
         );
 
+        // Set up authenticated User role
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "user@test.com",
+            Role = UserRole.User
+        };
+
         _mockOrderService.Setup(x => x.CreateAsync(request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<OrderResponse>.Failure("Failed to create order"));
 
         // Act
-        var result = await _controller.CreateOrder(request, null);
+        var result = await _controller.CreateOrder(request);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -335,9 +359,17 @@ public class OrderControllerTests
     {
         // Arrange
         var orderId = Guid.NewGuid();
+        
+        // Set up authenticated Chef role
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "chef@test.com",
+            Role = UserRole.Chef
+        };
 
         // Act
-        var result = await _controller.UpdateOrderStatus(orderId, null!, null);
+        var result = await _controller.UpdateOrderStatus(orderId, null!);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -363,11 +395,19 @@ public class OrderControllerTests
             CreatedAt = DateTime.UtcNow
         };
 
+        // Set up authenticated Chef role
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "chef@test.com",
+            Role = UserRole.Chef
+        };
+
         _mockOrderService.Setup(x => x.UpdateStatusAsync(orderId, request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<OrderResponse>.Success(response));
 
         // Act
-        var result = await _controller.UpdateOrderStatus(orderId, request, null);
+        var result = await _controller.UpdateOrderStatus(orderId, request);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -382,11 +422,19 @@ public class OrderControllerTests
         var orderId = Guid.NewGuid();
         var request = new UpdateOrderStatusRequest((int)OrderStatus.Confirmed);
 
+        // Set up authenticated Chef role
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "chef@test.com",
+            Role = UserRole.Chef
+        };
+
         _mockOrderService.Setup(x => x.UpdateStatusAsync(orderId, request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<OrderResponse>.Failure($"Order with ID {orderId} not found"));
 
         // Act
-        var result = await _controller.UpdateOrderStatus(orderId, request, null);
+        var result = await _controller.UpdateOrderStatus(orderId, request);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();

@@ -89,6 +89,7 @@ export default function OrdersPage() {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
+                        'X-User-Email': session?.user?.email || '',
                         'Content-Type': 'application/json'
                     }
                 });

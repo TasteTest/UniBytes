@@ -2,7 +2,7 @@
  * Loyalty API Service
  */
 
-import { ApiClient } from './client'
+import { ApiClient, apiClient } from './client'
 import { endpoints } from './endpoints'
 import { ApiResponse } from '../types/common.types'
 import {
@@ -16,9 +16,8 @@ import {
   LoyaltyTier,
 } from '../types/loyalty.types'
 
-// Create a dedicated client for loyalty service
-const loyaltyApiUrl = process.env.NEXT_PUBLIC_LOYALTY_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-const loyaltyClient = new ApiClient(loyaltyApiUrl)
+// Use the shared API client (which can have auth headers set)
+const loyaltyClient = apiClient
 
 export class LoyaltyService {
   /**
@@ -98,7 +97,7 @@ export class LoyaltyService {
     // Convert metadata object to JSON string if present
     const body = {
       ...request,
-      rewardMetadata: request.rewardMetadata 
+      rewardMetadata: request.rewardMetadata
         ? JSON.stringify(request.rewardMetadata)
         : '{}'
     }
@@ -110,11 +109,11 @@ export class LoyaltyService {
    */
   async getOrCreateAccount(userId: string): Promise<ApiResponse<LoyaltyAccount>> {
     const existing = await this.getByUserId(userId)
-    
+
     if (existing.isSuccess) {
       return existing
     }
-    
+
     // Account doesn't exist, create it
     return this.create({ userId })
   }

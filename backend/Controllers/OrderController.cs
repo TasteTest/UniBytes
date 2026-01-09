@@ -2,30 +2,28 @@
 using backend.Services.Interfaces;
 using backend.DTOs.Order.Request;
 using backend.DTOs.Order.Response;
+using backend.Common.Enums;
+using backend.Extensions;
 
 namespace backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class OrdersController(IOrderService orderService, IUserService userService) : ControllerBase
+public class OrdersController(IOrderService orderService) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> CreateOrder(
         [FromBody] CreateOrderRequest request,
-        [FromHeader(Name = "X-User-Email")] string? userEmail,
         CancellationToken ct = default)
     {
         if (request == null) 
             return BadRequest("Order data is missing.");
         
         // Only User role can place orders (Chef/Admin cannot)
-        if (!string.IsNullOrEmpty(userEmail))
+        // User is already authenticated by middleware
+        if (!HttpContext.IsInRole(UserRole.User))
         {
-            var user = await userService.GetUserEntityByEmailAsync(userEmail, ct);
-            if (user != null && user.Role != Common.Enums.UserRole.User)
-            {
-                return StatusCode(403, new { error = "Only regular users can place orders. Chef and Admin accounts cannot order." });
-            }
+            return StatusCode(403, new { error = "Only regular users can place orders. Chef and Admin accounts cannot order." });
         }
         
         var result = await orderService.CreateAsync(request, ct);
@@ -79,20 +77,16 @@ public class OrdersController(IOrderService orderService, IUserService userServi
     public async Task<IActionResult> UpdateOrderStatus(
         Guid id,
         [FromBody] UpdateOrderStatusRequest request,
-        [FromHeader(Name = "X-User-Email")] string? userEmail,
         CancellationToken ct = default)
     {
         if (request == null)
             return BadRequest("Status data is missing.");
         
         // Chef only authorization check (Admin manages users/menu, Chef manages orders)
-        if (!string.IsNullOrEmpty(userEmail))
+        // User is already authenticated by middleware
+        if (!HttpContext.IsInRole(UserRole.Chef))
         {
-            var user = await userService.GetUserEntityByEmailAsync(userEmail, ct);
-            if (user == null || user.Role != Common.Enums.UserRole.Chef)
-            {
-                return StatusCode(403, new { error = "Only Chef can update order status" });
-            }
+            return StatusCode(403, new { error = "Only Chef can update order status" });
         }
         
         var result = await orderService.UpdateStatusAsync(id, request, ct);

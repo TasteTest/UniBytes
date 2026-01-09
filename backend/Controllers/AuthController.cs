@@ -38,70 +38,42 @@ public class AuthController(
 
     /// <summary>
     /// Validates an access token and returns user information.
-    /// This endpoint is for inter-service communication.
+    /// This endpoint uses the JWT middleware for authentication.
     /// </summary>
-    /// <param name="authorization">Authorization header containing Bearer token.</param>
-    /// <param name="userEmail">User email from the X-User-Email header.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>User information if token is valid.</returns>
     [HttpGet("me")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetCurrentUser(
-        [FromHeader(Name = "Authorization")] string? authorization,
-        [FromHeader(Name = "X-User-Email")] string? userEmail,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
-        // Extract token from Authorization header
-        if (string.IsNullOrEmpty(authorization) || !authorization.StartsWith("Bearer "))
-        {
-            return Unauthorized(new { error = "Missing or invalid authorization header" });
-        }
-
-        var token = authorization.Substring("Bearer ".Length).Trim();
+        // The JWT middleware has already validated the token and user
+        // Get authenticated user from HttpContext (set by middleware)
+        var authenticatedUser = HttpContext.Items["AuthenticatedUser"] as Middleware.AuthenticatedUser;
         
-        // For now, we'll use a simple approach - extract email from the token
-        // In production, you should validate the JWT token properly
-        try
+        if (authenticatedUser == null)
         {
-            // This is a simplified version - you should validate the JWT token
-            // For NextAuth tokens, you can validate them or use a shared session store
-            
-            // For now, let's get user by the stored provider info
-            // The token should contain enough info to identify the user
-            
-            // Since NextAuth tokens are JWTs, you'd normally validate them
-            // For this demo, we'll accept the email from headers as a fallback
-            
-            if (string.IsNullOrEmpty(userEmail))
-            {
-                return Unauthorized(new { error = "User email not found in request" });
-            }
-
-            // Get user directly from repository to access ID
-            var user = await userService.GetUserEntityByEmailAsync(userEmail, cancellationToken);
-            
-            if (user == null)
-            {
-                return Unauthorized(new { error = "User not found" });
-            }
-
-            // Return user info with ID and role
-            return Ok(new
-            {
-                id = user.Id.ToString(),
-                email = user.Email,
-                firstName = user.FirstName,
-                lastName = user.LastName,
-                avatarUrl = user.AvatarUrl,
-                role = (int)user.Role
-            });
+            return Unauthorized(new { error = "User not authenticated" });
         }
-        catch (Exception ex)
+
+        // Get full user details from database
+        var user = await userService.GetUserEntityByEmailAsync(authenticatedUser.Email, cancellationToken);
+        
+        if (user == null)
         {
-            logger.LogError(ex, "Error validating token");
-            return Unauthorized(new { error = "Invalid token" });
+            return Unauthorized(new { error = "User not found" });
         }
+
+        // Return user info with ID and role
+        return Ok(new
+        {
+            id = user.Id.ToString(),
+            email = user.Email,
+            firstName = user.FirstName,
+            lastName = user.LastName,
+            avatarUrl = user.AvatarUrl,
+            role = (int)user.Role
+        });
     }
 }
 

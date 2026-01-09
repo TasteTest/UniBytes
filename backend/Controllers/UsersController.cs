@@ -1,6 +1,8 @@
 using backend.Services.Interfaces;
 using backend.DTOs.User.Request;
 using backend.DTOs.User.Response;
+using backend.Common.Enums;
+using backend.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -146,23 +148,16 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
     public async Task<IActionResult> SetUserRole(
         Guid id,
         [FromBody] SetRoleRequest request,
-        [FromHeader(Name = "X-User-Email")] string? adminEmail,
         CancellationToken cancellationToken)
     {
-        // Only Admin can change roles
-        if (string.IsNullOrEmpty(adminEmail))
-        {
-            return Unauthorized(new { error = "User email not found in request" });
-        }
-
-        var adminUser = await userService.GetUserEntityByEmailAsync(adminEmail, cancellationToken);
-        if (adminUser == null || adminUser.Role != Common.Enums.UserRole.Admin)
+        // Only Admin can change roles - authenticated by middleware
+        if (!HttpContext.IsInRole(UserRole.Admin))
         {
             return StatusCode(403, new { error = "Only Admin can change user roles" });
         }
 
         // Parse role from request
-        if (!Enum.TryParse<Common.Enums.UserRole>(request.Role, true, out var newRole))
+        if (!Enum.TryParse<UserRole>(request.Role, true, out var newRole))
         {
             return BadRequest(new { error = "Invalid role. Valid roles: User, Chef, Admin" });
         }

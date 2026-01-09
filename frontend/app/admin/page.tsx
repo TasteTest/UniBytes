@@ -102,9 +102,16 @@ export default function AdminPage() {
     setMenuLoading(true)
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL
+      const token = (session as any)?.accessToken
+      const userEmail = session?.user?.email || ''
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'X-User-Email': userEmail,
+        'Content-Type': 'application/json'
+      }
       const [categoriesRes, menuItemsRes] = await Promise.all([
-        fetch(`${apiBase}/categories`),
-        fetch(`${apiBase}/menuitems`)
+        fetch(`${apiBase}/categories`, { headers }),
+        fetch(`${apiBase}/menuitems`, { headers })
       ])
 
       if (categoriesRes.ok && menuItemsRes.ok) {
@@ -145,9 +152,12 @@ export default function AdminPage() {
     setUsersLoading(true)
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL
+      const token = (session as any)?.accessToken
       const response = await fetch(`${apiBase}/users`, {
         headers: {
-          "X-User-Email": session?.user?.email || ""
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': session?.user?.email || '',
+          'Content-Type': 'application/json'
         }
       })
       if (response.ok) {
@@ -174,11 +184,13 @@ export default function AdminPage() {
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL
+      const token = (session as any)?.accessToken
       const response = await fetch(`${apiBase}/users/${pendingRoleChange.userId}/role`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          "X-User-Email": session?.user?.email || ""
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': session?.user?.email || ''
         },
         body: JSON.stringify({ role: pendingRoleChange.newRole })
       })
@@ -254,10 +266,15 @@ export default function AdminPage() {
     try {
       if (editingItem) {
         // Update existing item
+        const token = (session as any)?.accessToken
         console.log("Updating menu item:", editingItem.id, payload)
         const response = await fetch(`${apiBase}/menuitems/${editingItem.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-User-Email': session?.user?.email || ''
+          },
           body: JSON.stringify(payload)
         })
 
@@ -280,9 +297,14 @@ export default function AdminPage() {
         }
       } else {
         // Create new item
+        const token = (session as any)?.accessToken
         const response = await fetch(`${apiBase}/menuitems`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-User-Email': session?.user?.email || ''
+          },
           body: JSON.stringify(payload)
         })
 
@@ -312,9 +334,14 @@ export default function AdminPage() {
 
   const handleDelete = async (id: string) => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL
+    const token = (session as any)?.accessToken
     try {
       const response = await fetch(`${apiBase}/menuitems/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': session?.user?.email || ''
+        }
       })
 
       if (response.ok) {
@@ -341,10 +368,15 @@ export default function AdminPage() {
 
   const toggleAvailability = async (id: string, currentAvailable: boolean) => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL
+    const token = (session as any)?.accessToken
     try {
       const response = await fetch(`${apiBase}/menuitems/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': session?.user?.email || ''
+        },
         body: JSON.stringify({ available: !currentAvailable })
       })
 
