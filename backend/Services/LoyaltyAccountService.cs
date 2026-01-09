@@ -16,16 +16,13 @@ namespace backend.Services;
 /// </summary>
 public class LoyaltyAccountService(
     ILoyaltyAccountRepository loyaltyAccountRepository,
-    ILoyaltyTransactionRepository loyaltyTransactionRepository,
     ILoyaltyRedemptionRepository loyaltyRedemptionRepository,
     IMapper mapper,
     ILogger<LoyaltyAccountService> logger)
     : ILoyaltyAccountService
 {
-    private readonly ILoyaltyTransactionRepository _loyaltyTransactionRepository = loyaltyTransactionRepository;
 
     // Tier thresholds based on points
-    private const long BRONZE_THRESHOLD = 0;
     private const long SILVER_THRESHOLD = 100;
     private const long GOLD_THRESHOLD = 500;
     private const long PLATINUM_THRESHOLD = 1000;
@@ -33,7 +30,7 @@ public class LoyaltyAccountService(
     /// <summary>
     /// Calculate tier based on points balance
     /// </summary>
-    private LoyaltyTier CalculateTier(long pointsBalance)
+    private static LoyaltyTier CalculateTier(long pointsBalance)
     {
         if (pointsBalance >= PLATINUM_THRESHOLD) return LoyaltyTier.Platinum;
         if (pointsBalance >= GOLD_THRESHOLD) return LoyaltyTier.Gold;

@@ -20,8 +20,7 @@ public class OAuthProvidersControllerTests
     public OAuthProvidersControllerTests()
     {
         _mockOAuthProviderService = new Mock<IOAuthProviderService>();
-        var mockLogger = new Mock<ILogger<OAuthProvidersController>>();
-        _controller = new OAuthProvidersController(_mockOAuthProviderService.Object, mockLogger.Object);
+        _controller = new OAuthProvidersController(_mockOAuthProviderService.Object);
     }
 
     [Fact]

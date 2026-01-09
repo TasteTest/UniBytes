@@ -19,8 +19,7 @@ public class UserAnalyticsControllerTests
     public UserAnalyticsControllerTests()
     {
         _mockUserAnalyticsService = new Mock<IUserAnalyticsService>();
-        var mockLogger = new Mock<ILogger<UserAnalyticsController>>();
-        _controller = new UserAnalyticsController(_mockUserAnalyticsService.Object, mockLogger.Object);
+        _controller = new UserAnalyticsController(_mockUserAnalyticsService.Object);
     }
 
     [Fact]

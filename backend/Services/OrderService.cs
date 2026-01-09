@@ -18,13 +18,15 @@ public class OrderService(
     ILogger<OrderService> logger)
     : IOrderService
 {
+    private const string OrderNotFoundMessage = "Order not found";
+
     public async Task<Result<OrderResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
             var order = await orderRepository.GetByIdAsync(id, cancellationToken);
             if (order == null)
-                return Result<OrderResponse>.Failure("Order not found");
+                return Result<OrderResponse>.Failure(OrderNotFoundMessage);
 
             var response = MapToResponse(order);
             return Result<OrderResponse>.Success(response);
@@ -89,7 +91,7 @@ public class OrderService(
             {
                 Id = Guid.NewGuid(),
                 UserId = createRequest.UserId,
-                Currency = createRequest.Currency?.ToLowerInvariant(),
+                Currency = createRequest.Currency?.ToLowerInvariant() ?? "ron",
                 PaymentStatus = 0,
                 OrderStatus = 0,
                 PlacedAt = DateTime.UtcNow,
@@ -139,7 +141,7 @@ public class OrderService(
         {
             var order = await orderRepository.GetByIdAsync(id, cancellationToken);
             if (order == null)
-                return Result<OrderResponse>.Failure("Order not found");
+                return Result<OrderResponse>.Failure(OrderNotFoundMessage);
 
             var oldStatus = order.OrderStatus;
             order.OrderStatus = updateRequest.OrderStatus;
@@ -169,7 +171,7 @@ public class OrderService(
         {
             var order = await orderRepository.GetByIdAsync(id, cancellationToken);
             if (order == null)
-                return Result<OrderResponse>.Failure("Order not found");
+                return Result<OrderResponse>.Failure(OrderNotFoundMessage);
             if (order.OrderStatus != (int)OrderStatus.Pending)
                 return Result<OrderResponse>.Failure("Only pending orders can be cancelled");
             else if (order.OrderStatus == 5)
@@ -197,7 +199,7 @@ public class OrderService(
         {
             var order = await orderRepository.GetByIdAsync(id, cancellationToken);
             if (order == null)
-                return Result.Failure("Order not found");
+                return Result.Failure(OrderNotFoundMessage);
 
             await orderRepository.DeleteAsync(order, cancellationToken);
             return Result.Success();

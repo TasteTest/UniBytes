@@ -18,8 +18,8 @@ public class AIService : IAIService
     private readonly ILogger<AIService> _logger;
     private readonly IMenuItemRepository _menuItemRepository;
     private readonly string _apiKey;
-    private const string OpenRouterApiUrl = "https://openrouter.ai/api/v1/chat/completions";
-    private const string Model = "openai/gpt-oss-20b:free";
+    private readonly string _model;
+    private const string ChatCompletionsEndpoint = "chat/completions";
 
     public AIService(
         IHttpClientFactory httpClientFactory, 
@@ -33,6 +33,7 @@ public class AIService : IAIService
         _apiKey = configuration["OpenRouter:ApiKey"] 
                   ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY") 
                   ?? throw new InvalidOperationException("OpenRouter API key is not configured");
+        _model = configuration["OpenRouter:Model"] ?? "openai/gpt-oss-20b:free";
     }
 
     public async Task<Result<AIResponse>> GetMenuRecommendationsAsync(AIRequest request, CancellationToken cancellationToken = default)
@@ -48,7 +49,7 @@ public class AIService : IAIService
             // Build OpenRouter request
             var openRouterRequest = new OpenRouterRequest
             {
-                Model = Model,
+                Model = _model,
                 Messages = new List<OpenRouterMessage>
                 {
                     new()
@@ -61,7 +62,7 @@ public class AIService : IAIService
             };
 
             // Prepare HTTP request
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, OpenRouterApiUrl)
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, ChatCompletionsEndpoint)
             {
                 Content = new StringContent(
                     JsonSerializer.Serialize(openRouterRequest),
@@ -121,7 +122,7 @@ public class AIService : IAIService
             
             // Fetch the recommended products
             var recommendedProducts = new List<DTOs.Menu.Response.MenuItemResponseDto>();
-            if (productIds.Any())
+            if (productIds.Count > 0)
             {
                 foreach (var productId in productIds)
                 {
@@ -165,7 +166,7 @@ public class AIService : IAIService
     /// <summary>
     /// Build comprehensive prompt for menu recommendations based on user preferences.
     /// </summary>
-    private string BuildEnhancedPrompt(AIRequest request, IEnumerable<Models.MenuItem> menuItems)
+    private static string BuildEnhancedPrompt(AIRequest request, IEnumerable<Models.MenuItem> menuItems)
     {
         var prompt = new StringBuilder();
 
@@ -203,7 +204,7 @@ public class AIService : IAIService
         prompt.AppendLine("# USER PREFERENCES");
         prompt.AppendLine($"**Dietary Goal**: {request.DietaryGoal}");
         
-        if (request.DietaryRestrictions.Any())
+        if (request.DietaryRestrictions is { Count: > 0 })
         {
             prompt.AppendLine($"**Dietary Restrictions**: {string.Join(", ", request.DietaryRestrictions)}");
         }

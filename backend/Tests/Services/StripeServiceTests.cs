@@ -28,7 +28,6 @@ public class StripeServiceTests
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<ILogger<StripeService>> _mockLogger;
     private readonly Mock<IStripeServiceWrapper> _mockStripeWrapper;
-    private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly StripeService _stripeService;
 
     public StripeServiceTests()
@@ -40,11 +39,6 @@ public class StripeServiceTests
         _mockMapper = new Mock<IMapper>();
         _mockLogger = new Mock<ILogger<StripeService>>();
         _mockStripeWrapper = new Mock<IStripeServiceWrapper>();
-        _mockConfiguration = new Mock<IConfiguration>();
-
-        // Setup configuration
-        _mockConfiguration.Setup(x => x["Stripe:WebhookSecret"])
-            .Returns("whsec_test_123456789");
 
         _stripeService = new StripeService(
             _mockPaymentRepository.Object,
@@ -53,8 +47,7 @@ public class StripeServiceTests
             _mockOrderService.Object,
             _mockMapper.Object,
             _mockLogger.Object,
-            _mockStripeWrapper.Object,
-            _mockConfiguration.Object);
+            _mockStripeWrapper.Object);
     }
 
     #region CreateCheckoutSessionAsync Tests
@@ -339,7 +332,7 @@ public class StripeServiceTests
         var json = "{}";
         var invalidSignature = "invalid_signature";
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(json, invalidSignature, It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(json, invalidSignature))
             .Throws(new StripeException("Invalid signature"));
 
         // Act
@@ -362,7 +355,7 @@ public class StripeServiceTests
         var payment = new Payment { Id = paymentId, Status = PaymentStatus.Processing };
         var paymentResponse = new PaymentResponse { Id = paymentId };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.GetByIdAsync(paymentId, It.IsAny<CancellationToken>()))
@@ -397,7 +390,7 @@ public class StripeServiceTests
         var payment = new Payment { Id = paymentId, ProviderChargeId = "pi_test", Status = PaymentStatus.Processing };
         var paymentResponse = new PaymentResponse { Id = paymentId };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
@@ -432,7 +425,7 @@ public class StripeServiceTests
         var payment = new Payment { Id = paymentId, ProviderChargeId = "pi_test", Status = PaymentStatus.Processing };
         var paymentResponse = new PaymentResponse { Id = paymentId };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
@@ -462,7 +455,7 @@ public class StripeServiceTests
         // Arrange
         var stripeEvent = new Event { Type = "some.other.event", Data = new EventData() };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         // Act
@@ -477,7 +470,7 @@ public class StripeServiceTests
     public async Task HandleWebhookEventAsync_GeneralException_ReturnsFailure()
     {
         // Arrange
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Throws(new Exception("Unexpected error"));
 
         // Act
@@ -630,7 +623,7 @@ public class StripeServiceTests
         var session = new Session { Id = "cs_test", ClientReferenceId = "invalid-guid" };
         var stripeEvent = new Event { Type = "checkout.session.completed", Data = new EventData { Object = session } };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         // Act
@@ -650,7 +643,7 @@ public class StripeServiceTests
         var session = new Session { Id = "cs_test", ClientReferenceId = paymentId.ToString() };
         var stripeEvent = new Event { Type = "checkout.session.completed", Data = new EventData { Object = session } };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.GetByIdAsync(paymentId, It.IsAny<CancellationToken>()))
@@ -672,7 +665,7 @@ public class StripeServiceTests
         var paymentIntent = new PaymentIntent { Id = "pi_test" };
         var stripeEvent = new Event { Type = "payment_intent.succeeded", Data = new EventData { Object = paymentIntent } };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
@@ -693,7 +686,7 @@ public class StripeServiceTests
         var paymentIntent = new PaymentIntent { Id = "pi_test" };
         var stripeEvent = new Event { Type = "payment_intent.payment_failed", Data = new EventData { Object = paymentIntent } };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
@@ -715,7 +708,7 @@ public class StripeServiceTests
         var session = new Session { Id = "cs_test", ClientReferenceId = paymentId.ToString() };
         var stripeEvent = new Event { Type = "checkout.session.completed", Data = new EventData { Object = session } };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.GetByIdAsync(paymentId, It.IsAny<CancellationToken>()))
@@ -737,7 +730,7 @@ public class StripeServiceTests
         var paymentIntent = new PaymentIntent { Id = "pi_test" };
         var stripeEvent = new Event { Type = "payment_intent.succeeded", Data = new EventData { Object = paymentIntent } };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
@@ -759,7 +752,7 @@ public class StripeServiceTests
         var paymentIntent = new PaymentIntent { Id = "pi_test" };
         var stripeEvent = new Event { Type = "payment_intent.payment_failed", Data = new EventData { Object = paymentIntent } };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
@@ -785,7 +778,7 @@ public class StripeServiceTests
         var payment = new Payment { Id = paymentId, ProviderChargeId = "pi_test", Status = PaymentStatus.Processing };
         var paymentResponse = new PaymentResponse { Id = paymentId };
 
-        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(stripeEvent);
 
         _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))

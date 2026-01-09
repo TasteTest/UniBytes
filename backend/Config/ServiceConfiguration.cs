@@ -37,7 +37,8 @@ public static class ServiceConfiguration
         services.AddScoped<IAIService, AIService>();
         services.AddHttpClient("OpenRouter", client =>
         {
-            client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
+            var baseUrl = configuration["OpenRouter:BaseUrl"] ?? "https://openrouter.ai/api/v1/";
+            client.BaseAddress = new Uri(baseUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 

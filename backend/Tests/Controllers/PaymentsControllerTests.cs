@@ -25,9 +25,8 @@ public class PaymentsControllerTests
     {
         _mockPaymentService = new Mock<IPaymentService>();
         _mockStripeService = new Mock<IStripeService>();
-        var mockLogger = new Mock<ILogger<PaymentsController>>();
         _httpContext = new DefaultHttpContext();
-        _controller = new PaymentsController(_mockPaymentService.Object, _mockStripeService.Object, mockLogger.Object)
+        _controller = new PaymentsController(_mockPaymentService.Object, _mockStripeService.Object)
         {
             ControllerContext = new ControllerContext
             {

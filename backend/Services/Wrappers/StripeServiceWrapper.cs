@@ -11,6 +11,7 @@ namespace backend.Services.Wrappers;
 [ExcludeFromCodeCoverage]
 public class StripeServiceWrapper : IStripeServiceWrapper
 {
+    private readonly string _webhookSecret;
     private readonly ILogger<StripeServiceWrapper> _logger;
 
     public StripeServiceWrapper(IConfiguration configuration, ILogger<StripeServiceWrapper> logger)
@@ -20,6 +21,11 @@ public class StripeServiceWrapper : IStripeServiceWrapper
         // Set Stripe API key (check environment variables first, then configuration)
         var stripeSecretKey = Environment.GetEnvironmentVariable("Stripe__SecretKey")
             ?? configuration["Stripe:SecretKey"];
+        
+        // Read webhook secret
+        _webhookSecret = Environment.GetEnvironmentVariable("Stripe__WebhookSecret")
+                          ?? configuration["Stripe:WebhookSecret"]
+                          ?? string.Empty;
         
         if (string.IsNullOrEmpty(stripeSecretKey))
         {
@@ -44,8 +50,8 @@ public class StripeServiceWrapper : IStripeServiceWrapper
         return await service.GetAsync(sessionId, cancellationToken: cancellationToken);
     }
 
-    public Event ConstructWebhookEvent(string json, string stripeSignature, string webhookSecret)
+    public Event ConstructWebhookEvent(string json, string stripeSignature)
     {
-        return EventUtility.ConstructEvent(json, stripeSignature, webhookSecret);
+        return EventUtility.ConstructEvent(json, stripeSignature, _webhookSecret);
     }
 }

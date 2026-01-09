@@ -24,7 +24,6 @@ public class StripeService : IStripeService
     private readonly IMapper _mapper;
     private readonly ILogger<StripeService> _logger;
     private readonly IStripeServiceWrapper _stripeWrapper;
-    private readonly string _webhookSecret;
 
     public StripeService(
         IPaymentRepository paymentRepository,
@@ -33,8 +32,7 @@ public class StripeService : IStripeService
         IOrderService orderService,
         IMapper mapper,
         ILogger<StripeService> logger,
-        IStripeServiceWrapper stripeWrapper,
-        IConfiguration configuration)
+        IStripeServiceWrapper stripeWrapper)
     {
         _paymentRepository = paymentRepository;
         _idempotencyKeyRepository = idempotencyKeyRepository;
@@ -43,11 +41,6 @@ public class StripeService : IStripeService
         _mapper = mapper;
         _logger = logger;
         _stripeWrapper = stripeWrapper;
-
-        // Read webhook secret from environment variables first, then configuration
-        _webhookSecret = Environment.GetEnvironmentVariable("Stripe__WebhookSecret")
-                         ?? configuration["Stripe:WebhookSecret"]
-                         ?? string.Empty;
     }
 
     public async Task<Result<CheckoutSessionResponse>> CreateCheckoutSessionAsync(
@@ -68,7 +61,7 @@ public class StripeService : IStripeService
 
             var userId = userEntity.Id;
 
-            _logger.LogInformation("User authenticated: {UserId} ({Email})", userId, userEntity.Email);
+
 
             // Check for idempotency
             if (!string.IsNullOrEmpty(request.IdempotencyKey))
@@ -115,7 +108,7 @@ public class StripeService : IStripeService
                 OrderId = createdOrderId,
                 UserId = userId,
                 Amount = request.LineItems.Sum(li => li.UnitPrice * li.Quantity),
-                Currency = currency,
+                Currency = currency ?? "ron",
                 Provider = PaymentProvider.Stripe,
                 Status = PaymentStatus.Processing,
                 CreatedAt = DateTime.UtcNow,
@@ -210,7 +203,7 @@ public class StripeService : IStripeService
     {
         try
         {
-            var stripeEvent = _stripeWrapper.ConstructWebhookEvent(json, stripeSignature, _webhookSecret);
+            var stripeEvent = _stripeWrapper.ConstructWebhookEvent(json, stripeSignature);
 
             _logger.LogInformation("Processing Stripe webhook event: {EventType}", stripeEvent.Type);
 

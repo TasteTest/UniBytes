@@ -12,11 +12,9 @@ namespace backend.Controllers;
 [Route("api/[controller]")]
 [Produces("application/json")]
 public class UserAnalyticsController(
-    IUserAnalyticsService userAnalyticsService,
-    ILogger<UserAnalyticsController> logger)
+    IUserAnalyticsService userAnalyticsService)
     : ControllerBase
 {
-    private readonly ILogger<UserAnalyticsController> _logger = logger;
 
     /// <summary>
     /// Get user analytics by ID

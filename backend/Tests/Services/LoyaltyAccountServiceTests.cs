@@ -24,14 +24,13 @@ public class LoyaltyAccountServiceTests
     public LoyaltyAccountServiceTests()
     {
         _mockLoyaltyAccountRepository = new Mock<ILoyaltyAccountRepository>();
-        var mockLoyaltyTransactionRepository = new Mock<ILoyaltyTransactionRepository>();
+
         _mockLoyaltyRedemptionRepository = new Mock<ILoyaltyRedemptionRepository>();
         _mockMapper = new Mock<IMapper>();
         var mockLogger = new Mock<ILogger<LoyaltyAccountService>>();
 
         _loyaltyAccountService = new LoyaltyAccountService(
             _mockLoyaltyAccountRepository.Object,
-            mockLoyaltyTransactionRepository.Object,
             _mockLoyaltyRedemptionRepository.Object,
             _mockMapper.Object,
             mockLogger.Object);

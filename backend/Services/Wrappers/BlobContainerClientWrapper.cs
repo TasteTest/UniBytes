@@ -108,7 +108,7 @@ public class BlobContainerClientWrapper : IBlobContainerClientWrapper
             }
             catch (Azure.RequestFailedException ex) when (ex.ErrorCode == "PublicAccessNotPermitted")
             {
-                _logger.LogInformation("Container exists or public access not permitted (this is expected)");
+                _logger.LogInformation(ex, "Container exists or public access not permitted (this is expected)");
             }
             
             IsConfigured = true;
