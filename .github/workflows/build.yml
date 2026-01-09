@@ -1,0 +1,97 @@
+name: SonarCloud
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: windows-latest
+    
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+      
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~\sonar\cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      
+      - name: Cache SonarCloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+      
+      - name: Install SonarCloud scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          New-Item -Path ${{ runner.temp }}\scanner -ItemType Directory
+          dotnet tool update dotnet-sonarscanner --tool-path ${{ runner.temp }}\scanner
+      
+      - name: Restore dependencies
+        shell: powershell
+        run: dotnet restore backend/UniBytes.sln
+      
+      - name: Begin SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
+        run: |
+          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin `
+            /k:"TasteTest_UniBytes" `
+            /o:"tastetest" `
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.cs.opencover.reportsPaths="backend\TestResults\**\coverage.opencover.xml" `
+            /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/*.Designer.cs"
+      
+      - name: Build
+        shell: powershell
+        run: dotnet build backend/UniBytes.sln --configuration Release --no-restore
+      
+      - name: Run tests with coverage
+        shell: powershell
+        run: |
+          dotnet test backend/UniBytes.sln `
+            --configuration Release `
+            --no-build `
+            --verbosity normal `
+            --collect:"XPlat Code Coverage" `
+            --results-directory backend\TestResults `
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      
+      - name: List coverage files
+        shell: powershell
+        run: |
+          Write-Host "=== Coverage files found ==="
+          Get-ChildItem -Path backend\TestResults -Recurse -Filter "*.xml" | ForEach-Object { 
+            Write-Host $_.FullName 
+            Write-Host "First 50 lines:"
+            Get-Content $_.FullName -TotalCount 50
+          }
+      
+      - name: End SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
+        run: ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"

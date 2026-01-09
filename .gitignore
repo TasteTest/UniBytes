@@ -523,6 +523,23 @@ TestResults/
 *.coveragexml
 
 #############################################
+# SonarQube
+#############################################
+
+# SonarQube working directories
+.sonarqube/
+.sonar/
+.scannerwork/
+
+# SonarQube analysis results
+sonar-report.json
+report-task.txt
+
+# SonarQube coverage
+coverage.xml
+*.opencover.xml
+
+#############################################
 # Docker
 #############################################
 
