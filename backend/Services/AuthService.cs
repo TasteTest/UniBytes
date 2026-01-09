@@ -51,133 +51,133 @@ public class AuthService(
 
         if (existingOAuthProvider != null)
         {
-            // User already exists with this OAuth provider
-            var existingUser = await userRepository.GetByIdAsync(existingOAuthProvider.UserId, cancellationToken);
-            if (existingUser == null)
+            user = await HandleExistingOAuthProviderAsync(existingOAuthProvider, request, cancellationToken);
+            if (user == null)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return Result<AuthResponse>.Failure("User not found");
             }
-            user = existingUser;
-
-            // Update OAuth provider tokens
-            existingOAuthProvider.AccessToken = request.AccessToken;
-            existingOAuthProvider.RefreshToken = request.RefreshToken;
-            existingOAuthProvider.TokenExpiresAt = request.TokenExpiresAt;
-            existingOAuthProvider.UpdatedAt = DateTime.UtcNow;
-
-            context.Entry(existingOAuthProvider).State = EntityState.Modified;
-
-            // Update user last login
-            user.LastLoginAt = DateTime.UtcNow;
-            user.UpdatedAt = DateTime.UtcNow;
-            
-            // Update user profile if not set
-            if (string.IsNullOrEmpty(user.FirstName) && !string.IsNullOrEmpty(request.FirstName))
-            {
-                user.FirstName = request.FirstName;
-            }
-            if (string.IsNullOrEmpty(user.LastName) && !string.IsNullOrEmpty(request.LastName))
-            {
-                user.LastName = request.LastName;
-            }
-            if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(request.AvatarUrl))
-            {
-                user.AvatarUrl = request.AvatarUrl;
-            }
-
-            context.Entry(user).State = EntityState.Modified;
-
-            logger.LogInformation("Existing user {Email} authenticated with Google", user.Email);
         }
         else
         {
-            // Check if user exists by email
             var existingUserByEmail = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
 
             if (existingUserByEmail != null)
             {
-                user = existingUserByEmail;
-                // User exists but doesn't have this OAuth provider linked
-                // Link the OAuth provider to existing user
-                var newOAuthProvider = new OAuthProvider
-                {
-                    UserId = user.Id,
-                    Provider = request.Provider,
-                    ProviderId = request.ProviderId,
-                    ProviderEmail = request.ProviderEmail,
-                    AccessToken = request.AccessToken,
-                    RefreshToken = request.RefreshToken,
-                    TokenExpiresAt = request.TokenExpiresAt,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                await context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
-
-                // Update user last login
-                user.LastLoginAt = DateTime.UtcNow;
-                user.UpdatedAt = DateTime.UtcNow;
-                context.Entry(user).State = EntityState.Modified;
-
-                logger.LogInformation("Linked Google OAuth to existing user {Email}", user.Email);
+                user = await HandleExistingUserLinkingAsync(existingUserByEmail, request, cancellationToken);
             }
             else
             {
-                // Create new user
-                // First admin is hardcoded
-                var isFirstAdmin = string.Equals(request.Email, "lisaioanamercas@gmail.com", StringComparison.OrdinalIgnoreCase);
-                
-                user = new User
-                {
-                    Email = request.Email,
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    AvatarUrl = request.AvatarUrl,
-                    IsActive = true,
-                    Role = isFirstAdmin ? Common.Enums.UserRole.Admin : Common.Enums.UserRole.User,
-                    LastLoginAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                await context.Users.AddAsync(user, cancellationToken);
-                await context.SaveChangesAsync(cancellationToken); // Save to get user ID
-
-                // Create OAuth provider
-                var newOAuthProvider = new OAuthProvider
-                {
-                    UserId = user.Id,
-                    Provider = request.Provider,
-                    ProviderId = request.ProviderId,
-                    ProviderEmail = request.ProviderEmail,
-                    AccessToken = request.AccessToken,
-                    RefreshToken = request.RefreshToken,
-                    TokenExpiresAt = request.TokenExpiresAt,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                await context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
-
+                user = await CreateNewUserAndProviderAsync(request, cancellationToken);
                 isNewUser = true;
-                logger.LogInformation("Created new user {Email} with Google OAuth", user.Email);
             }
         }
 
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
+        var authResponse = GenerateAuthResponse(user, isNewUser);
+        return Result<AuthResponse>.Success(authResponse);
+    }
+
+    private async Task<User?> HandleExistingOAuthProviderAsync(OAuthProvider existingOAuthProvider, GoogleAuthRequest request, CancellationToken cancellationToken)
+    {
+        var existingUser = await userRepository.GetByIdAsync(existingOAuthProvider.UserId, cancellationToken);
+        if (existingUser == null) return null;
+
+        existingOAuthProvider.AccessToken = request.AccessToken;
+        existingOAuthProvider.RefreshToken = request.RefreshToken;
+        existingOAuthProvider.TokenExpiresAt = request.TokenExpiresAt;
+        existingOAuthProvider.UpdatedAt = DateTime.UtcNow;
+
+        context.Entry(existingOAuthProvider).State = EntityState.Modified;
+
+        existingUser.LastLoginAt = DateTime.UtcNow;
+        existingUser.UpdatedAt = DateTime.UtcNow;
+
+        if (string.IsNullOrEmpty(existingUser.FirstName) && !string.IsNullOrEmpty(request.FirstName)) existingUser.FirstName = request.FirstName;
+        if (string.IsNullOrEmpty(existingUser.LastName) && !string.IsNullOrEmpty(request.LastName)) existingUser.LastName = request.LastName;
+        if (string.IsNullOrEmpty(existingUser.AvatarUrl) && !string.IsNullOrEmpty(request.AvatarUrl)) existingUser.AvatarUrl = request.AvatarUrl;
+
+        context.Entry(existingUser).State = EntityState.Modified;
+        logger.LogInformation("Existing user {Email} authenticated with Google", existingUser.Email);
+        
+        return existingUser;
+    }
+
+    private async Task<User> HandleExistingUserLinkingAsync(User user, GoogleAuthRequest request, CancellationToken cancellationToken)
+    {
+        var newOAuthProvider = new OAuthProvider
+        {
+            UserId = user.Id,
+            Provider = request.Provider,
+            ProviderId = request.ProviderId,
+            ProviderEmail = request.ProviderEmail,
+            AccessToken = request.AccessToken,
+            RefreshToken = request.RefreshToken,
+            TokenExpiresAt = request.TokenExpiresAt,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
+
+        user.LastLoginAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
+        context.Entry(user).State = EntityState.Modified;
+
+        logger.LogInformation("Linked Google OAuth to existing user {Email}", user.Email);
+        return user;
+    }
+
+    private async Task<User> CreateNewUserAndProviderAsync(GoogleAuthRequest request, CancellationToken cancellationToken)
+    {
+        var isFirstAdmin = string.Equals(request.Email, "lisaioanamercas@gmail.com", StringComparison.OrdinalIgnoreCase);
+
+        var user = new User
+        {
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            AvatarUrl = request.AvatarUrl,
+            IsActive = true,
+            Role = isFirstAdmin ? Common.Enums.UserRole.Admin : Common.Enums.UserRole.User,
+            LastLoginAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await context.Users.AddAsync(user, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+
+        var newOAuthProvider = new OAuthProvider
+        {
+            UserId = user.Id,
+            Provider = request.Provider,
+            ProviderId = request.ProviderId,
+            ProviderEmail = request.ProviderEmail,
+            AccessToken = request.AccessToken,
+            RefreshToken = request.RefreshToken,
+            TokenExpiresAt = request.TokenExpiresAt,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await context.OAuthProviders.AddAsync(newOAuthProvider, cancellationToken);
+        logger.LogInformation("Created new user {Email} with Google authentication", user.Email);
+        return user;
+    }
+
+    private AuthResponse GenerateAuthResponse(User user, bool isNewUser)
+    {
         var userResponse = mapper.Map<UserResponse>(user);
-        var authResponse = new AuthResponse
+        return new AuthResponse
         {
             UserId = user.Id.ToString(),
             User = userResponse,
             IsNewUser = isNewUser,
             Message = isNewUser ? "User created successfully" : "User authenticated successfully"
         };
-
-        return Result<AuthResponse>.Success(authResponse);
     }
 }
 

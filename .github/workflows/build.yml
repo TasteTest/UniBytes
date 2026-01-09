@@ -65,7 +65,8 @@ jobs:
             /d:sonar.sources="backend" `
             /d:sonar.exclusions="**/frontend/**,**/node_modules/**,**/wwwroot/**,**/bin/**,**/obj/**,db/**,backlogs/**,scripts/**,docker-compose.yml,**/*.sql,**/*.md,**/.env*" `
             /d:sonar.cs.opencover.reportsPaths="backend\TestResults\**\coverage.opencover.xml" `
-            /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/*.Designer.cs,**/Tests/**"
+            /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/*.Designer.cs,**/Tests/**" `
+            /d:sonar.qualitygate.wait=true
       
       - name: Build
         shell: powershell

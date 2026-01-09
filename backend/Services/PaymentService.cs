@@ -20,7 +20,8 @@ public class PaymentService : IPaymentService
     private readonly IStripeServiceWrapper _stripeWrapper;
     private readonly string _frontendUrl;
 
-    private const string DefaultFrontendUrl = "http://localhost:3000";
+    // Use empty string as default, or a placeholder that indicates configuration is missing
+    private const string DefaultFrontendUrl = "";
 
     public PaymentService(
         IPaymentRepository paymentRepository, 
