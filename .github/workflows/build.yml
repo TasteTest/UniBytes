@@ -25,7 +25,7 @@ jobs:
       
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
       
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
@@ -62,8 +62,8 @@ jobs:
             /k:"TasteTest_UniBytes" `
             /o:"tastetest" `
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
-            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" `
-            /d:sonar.coverage.exclusions="**/Tests/**,**/Migrations/**,**/Program.cs"
+            /d:sonar.cs.opencover.reportsPaths="backend\TestResults\**\coverage.opencover.xml" `
+            /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/*.Designer.cs"
       
       - name: Build
         shell: powershell
@@ -77,8 +77,18 @@ jobs:
             --no-build `
             --verbosity normal `
             --collect:"XPlat Code Coverage" `
-            --results-directory backend/TestResults `
+            --results-directory backend\TestResults `
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      
+      - name: List coverage files
+        shell: powershell
+        run: |
+          Write-Host "=== Coverage files found ==="
+          Get-ChildItem -Path backend\TestResults -Recurse -Filter "*.xml" | ForEach-Object { 
+            Write-Host $_.FullName 
+            Write-Host "First 50 lines:"
+            Get-Content $_.FullName -TotalCount 50
+          }
       
       - name: End SonarCloud analysis
         env:
