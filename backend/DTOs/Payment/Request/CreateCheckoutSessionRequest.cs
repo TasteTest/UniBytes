@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace backend.DTOs.Payment.Request;
 
@@ -7,6 +8,7 @@ namespace backend.DTOs.Payment.Request;
 /// </summary>
 public class CreateCheckoutSessionRequest
 {
+    [JsonRequired]
     public Guid OrderId { get; init; }
     public string AccessToken { get; set; } = string.Empty;
     public string UserEmail { get; init; } = string.Empty;

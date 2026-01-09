@@ -1,4 +1,5 @@
 import { Result } from '../types/common.types';
+import { getSession } from 'next-auth/react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -38,10 +39,13 @@ export class AIService {
                 throw new Error('API base URL not configured');
             }
 
+            const session = await getSession();
             const response = await fetch(`${API_URL}/ai/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.accessToken || ''}`,
+                    'X-User-Email': session?.user?.email || ''
                 },
                 body: JSON.stringify(request),
             });

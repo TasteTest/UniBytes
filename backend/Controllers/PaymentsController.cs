@@ -114,10 +114,11 @@ public class PaymentsController(
     [HttpPost("webhook")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> StripeWebhook(CancellationToken cancellationToken)
+    public async Task<IActionResult> StripeWebhook(
+        [FromHeader(Name = "Stripe-Signature")] string? stripeSignature,
+        CancellationToken cancellationToken)
     {
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync(cancellationToken);
-        var stripeSignature = Request.Headers["Stripe-Signature"].ToString();
 
         if (string.IsNullOrEmpty(stripeSignature))
         {

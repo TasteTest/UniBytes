@@ -5,6 +5,7 @@ using backend.DTOs.Auth.Request;
 using backend.DTOs.Auth.Response;
 using backend.DTOs.User.Response;
 using backend.Models;
+using backend.Middleware;
 using backend.Services.Interfaces;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -26,9 +27,8 @@ public class AuthControllerTests
     {
         _mockAuthService = new Mock<IAuthService>();
         _mockUserService = new Mock<IUserService>();
-        var mockLogger = new Mock<ILogger<AuthController>>();
         _httpContext = new DefaultHttpContext();
-        _controller = new AuthController(_mockAuthService.Object, _mockUserService.Object, mockLogger.Object)
+        _controller = new AuthController(_mockAuthService.Object, _mockUserService.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -95,10 +95,10 @@ public class AuthControllerTests
     }
 
     [Fact]
-    public async Task GetCurrentUser_ReturnsUnauthorized_WhenAuthorizationHeaderMissing()
+    public async Task GetCurrentUser_ReturnsUnauthorized_WhenNotAuthenticated()
     {
-        // Arrange
-        _httpContext.Request.Headers.Clear();
+        // Arrange - no AuthenticatedUser set in HttpContext.Items (simulates middleware rejection passed through)
+        _httpContext.Items.Clear();
 
         // Act
         var result = await _controller.GetCurrentUser(CancellationToken.None);
@@ -108,41 +108,16 @@ public class AuthControllerTests
     }
 
     [Fact]
-    public async Task GetCurrentUser_ReturnsUnauthorized_WhenAuthorizationHeaderInvalid()
-    {
-        // Arrange
-        _httpContext.Request.Headers["Authorization"] = "InvalidToken";
-
-        // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
-
-        // Assert
-        result.Should().BeOfType<UnauthorizedObjectResult>();
-    }
-
-    [Fact]
-    public async Task GetCurrentUser_ReturnsUnauthorized_WhenUserEmailHeaderMissing()
-    {
-        // Arrange
-        _httpContext.Request.Headers["Authorization"] = "Bearer token123";
-
-        // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
-
-        // Assert
-        result.Should().BeOfType<UnauthorizedObjectResult>();
-        var unauthorized = result as UnauthorizedObjectResult;
-        var response = unauthorized!.Value as dynamic;
-        Assert.NotNull(response);
-    }
-
-    [Fact]
-    public async Task GetCurrentUser_ReturnsUnauthorized_WhenUserNotFound()
+    public async Task GetCurrentUser_ReturnsUnauthorized_WhenUserNotFoundInDatabase()
     {
         // Arrange
         var email = "notfound@example.com";
-        _httpContext.Request.Headers["Authorization"] = "Bearer token123";
-        _httpContext.Request.Headers["X-User-Email"] = email;
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            Role = UserRole.User
+        };
 
         _mockUserService.Setup(x => x.GetUserEntityByEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
@@ -166,11 +141,17 @@ public class AuthControllerTests
             Email = email,
             FirstName = "Test",
             LastName = "User",
-            AvatarUrl = "http://example.com/avatar.jpg"
+            AvatarUrl = "http://example.com/avatar.jpg",
+            Role = UserRole.User
         };
 
-        _httpContext.Request.Headers["Authorization"] = "Bearer token123";
-        _httpContext.Request.Headers["X-User-Email"] = email;
+        // Set authenticated user in HttpContext (simulates middleware behavior)
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = userId,
+            Email = email,
+            Role = UserRole.User
+        };
 
         _mockUserService.Setup(x => x.GetUserEntityByEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
@@ -182,26 +163,6 @@ public class AuthControllerTests
         result.Should().BeOfType<OkObjectResult>();
         var okResult = result as OkObjectResult;
         okResult!.Value.Should().NotBeNull();
-        // Verify the response contains user information (exact structure depends on implementation)
-        okResult.Value.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task GetCurrentUser_ReturnsUnauthorized_WhenExceptionThrown()
-    {
-        // Arrange
-        var email = "test@example.com";
-        _httpContext.Request.Headers["Authorization"] = "Bearer token123";
-        _httpContext.Request.Headers["X-User-Email"] = email;
-
-        _mockUserService.Setup(x => x.GetUserEntityByEmailAsync(email, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Database error"));
-
-        // Act
-        var result = await _controller.GetCurrentUser(CancellationToken.None);
-
-        // Assert
-        result.Should().BeOfType<UnauthorizedObjectResult>();
     }
 }
 

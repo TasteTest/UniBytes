@@ -28,7 +28,7 @@ export class ApiClient {
         }
       }
       const url = new URL(`${this.baseUrl}${endpoint}`)
-      
+
       // Add query parameters
       if (config?.params) {
         Object.entries(config.params).forEach(([key, value]) => {
@@ -111,8 +111,34 @@ export class ApiClient {
     return this.request<T>(endpoint, { method: 'DELETE' }, config)
   }
 
+  /**
+   * Set auth token for Bearer authentication
+   */
   setAuthToken(token: string): void {
     (this.defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`
+  }
+
+  /**
+   * Set user email for X-User-Email header
+   */
+  setUserEmail(email: string): void {
+    (this.defaultHeaders as Record<string, string>)['X-User-Email'] = email
+  }
+
+  /**
+   * Set full authentication credentials (both token and email)
+   */
+  setAuth(token: string, email: string): void {
+    this.setAuthToken(token)
+    this.setUserEmail(email)
+  }
+
+  /**
+   * Remove all authentication headers
+   */
+  removeAuth(): void {
+    delete (this.defaultHeaders as Record<string, string>)['Authorization']
+    delete (this.defaultHeaders as Record<string, string>)['X-User-Email']
   }
 
   removeAuthToken(): void {

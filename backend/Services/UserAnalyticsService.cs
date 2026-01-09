@@ -101,14 +101,7 @@ public class UserAnalyticsService(
     {
         try
         {
-            // Check if user exists
-            // Note: In monolith, we assume user exists. In production, inject IUserRepository if needed
-            var userExists = true; // User validation removed - handled at controller/auth level
-            if (!userExists)
-            {
-                return Result<UserAnalyticsResponse>.Failure($"User with ID {createRequest.UserId} not found");
-            }
-
+            // Note: User validation is handled at controller/auth level
             var analytics = mapper.Map<UserAnalytics>(createRequest);
             analytics.CreatedAt = DateTime.UtcNow;
 

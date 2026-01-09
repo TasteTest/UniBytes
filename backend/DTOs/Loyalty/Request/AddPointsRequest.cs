@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace backend.DTOs.Loyalty.Request;
 
@@ -8,6 +9,7 @@ namespace backend.DTOs.Loyalty.Request;
 public class AddPointsRequest
 {
     [Required]
+    [JsonRequired]
     public Guid UserId { get; init; }
 
     [Required]

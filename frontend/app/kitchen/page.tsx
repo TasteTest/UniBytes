@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { ChefHat, Clock, CheckCircle, Loader2, ShieldAlert, Gift } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -74,17 +75,28 @@ const getStableOrderNumber = (createdAt: string): number => {
 }
 
 export default function KitchenPage() {
+  const { data: session } = useSession()
   const { canAccessKitchen, isLoading: roleLoading } = useAdmin()
   const [orders, setOrders] = useState<KitchenOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
+  // Get auth info from session
+  const token = (session as any)?.accessToken
+  const userEmail = session?.user?.email
+
   const fetchOrders = async () => {
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL
       if (!apiBase) throw new Error("API base URL not configured")
-      const res = await fetch(`${apiBase}/orders`)
+      const res = await fetch(`${apiBase}/orders`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': userEmail || '',
+          'Content-Type': 'application/json'
+        }
+      })
       if (!res.ok) throw new Error("Failed to fetch orders")
       const data: KitchenOrder[] = await res.json()
       const active = data
@@ -107,10 +119,12 @@ export default function KitchenPage() {
   }
 
   useEffect(() => {
-    fetchOrders()
-    const id = setInterval(fetchOrders, 10000)
-    return () => clearInterval(id)
-  }, [])
+    if (session && token && userEmail) {
+      fetchOrders()
+      const id = setInterval(fetchOrders, 10000)
+      return () => clearInterval(id)
+    }
+  }, [session, token, userEmail])
 
   const updateOrderStatus = async (orderId: string, orderIndex: number, newStatus: "pending" | "preparing" | "ready" | "completed") => {
     try {
@@ -119,7 +133,11 @@ export default function KitchenPage() {
       const code = getBackendStatusCode(newStatus)
       const res = await fetch(`${apiBase}/orders/${orderId}/status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': userEmail || ''
+        },
         body: JSON.stringify({ orderStatus: code }),
       })
       if (!res.ok) throw new Error("Failed to update")

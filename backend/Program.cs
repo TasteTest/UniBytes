@@ -1,4 +1,5 @@
 using backend.Config;
+using backend.Middleware;
 using DotNetEnv;
 
 // Load .env.local only when no POSTGRES_* variables are already provided.
@@ -39,6 +40,10 @@ app.UseSwaggerConfiguration(app.Environment);
 
 app.UseHttpsRedirection();
 app.UseCorsConfiguration();
+
+// JWT Authentication middleware (must be before UseAuthorization)
+app.UseMiddleware<JwtAuthenticationMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -47,5 +52,5 @@ app.MapHealthChecks("/health");
 app.MapControllers();
 app.UseHealthCheckConfiguration();
 
-app.Run();
+await app.RunAsync();
 

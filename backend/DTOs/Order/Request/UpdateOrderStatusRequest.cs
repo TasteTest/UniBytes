@@ -1,9 +1,11 @@
-﻿namespace backend.DTOs.Order.Request;
+﻿using System.Text.Json.Serialization;
+
+namespace backend.DTOs.Order.Request;
 
 /// <summary>
 /// DTO for updating order status
 /// </summary>
 public record UpdateOrderStatusRequest(
-    int OrderStatus
+    [property: JsonRequired] int OrderStatus
 );
 
