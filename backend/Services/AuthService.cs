@@ -51,12 +51,13 @@ public class AuthService(
 
         if (existingOAuthProvider != null)
         {
-            user = await HandleExistingOAuthProviderAsync(existingOAuthProvider, request, cancellationToken);
-            if (user == null)
+            var existingUser = await HandleExistingOAuthProviderAsync(existingOAuthProvider, request, cancellationToken);
+            if (existingUser == null)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return Result<AuthResponse>.Failure("User not found");
             }
+            user = existingUser;
         }
         else
         {
