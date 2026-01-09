@@ -62,6 +62,8 @@ jobs:
             /k:"TasteTest_UniBytes" `
             /o:"tastetest" `
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.sources="backend" `
+            /d:sonar.exclusions="**/frontend/**,**/node_modules/**,**/wwwroot/**" `
             /d:sonar.cs.opencover.reportsPaths="backend\TestResults\**\coverage.opencover.xml" `
             /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs,**/*.Designer.cs"
       
