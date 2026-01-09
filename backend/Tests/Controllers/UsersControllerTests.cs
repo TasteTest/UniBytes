@@ -1,9 +1,13 @@
 using backend.Common;
+using backend.Common.Enums;
 using backend.Controllers;
 using backend.Services.Interfaces;
 using backend.DTOs.User.Request;
 using backend.DTOs.User.Response;
+using backend.Extensions;
+using backend.Middleware;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,6 +25,10 @@ public class UsersControllerTests
         _mockUserService = new Mock<IUserService>();
         var mockLogger = new Mock<ILogger<UsersController>>();
         _controller = new UsersController(_mockUserService.Object, mockLogger.Object);
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
     }
 
     #region GetAll Tests
@@ -432,5 +440,133 @@ public class UsersControllerTests
     }
 
     #endregion
-}
 
+    #region SetUserRole Tests
+
+    [Fact]
+    public async Task SetUserRole_WithoutAdminRole_Returns403()
+    {
+        // Arrange - Set up non-admin user
+        var userId = Guid.NewGuid();
+        var request = new SetRoleRequest { Role = "Chef" };
+        
+        _controller.HttpContext.SetAuthenticatedUser(new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "user@test.com",
+            Role = UserRole.User
+        });
+
+        // Act
+        var result = await _controller.SetUserRole(userId, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult!.StatusCode.Should().Be(403);
+        _mockUserService.Verify(x => x.SetUserRoleAsync(It.IsAny<Guid>(), It.IsAny<UserRole>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetUserRole_WithChefRole_Returns403()
+    {
+        // Arrange - Set up chef user (not admin)
+        var userId = Guid.NewGuid();
+        var request = new SetRoleRequest { Role = "Admin" };
+        
+        _controller.HttpContext.SetAuthenticatedUser(new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "chef@test.com",
+            Role = UserRole.Chef
+        });
+
+        // Act
+        var result = await _controller.SetUserRole(userId, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult!.StatusCode.Should().Be(403);
+    }
+
+    [Fact]
+    public async Task SetUserRole_WithAdminRole_Success()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new SetRoleRequest { Role = "Chef" };
+        
+        _controller.HttpContext.SetAuthenticatedUser(new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "admin@test.com",
+            Role = UserRole.Admin
+        });
+
+        var userResponse = new UserResponse
+        {
+            Email = "target@test.com",
+            FirstName = "Target",
+            LastName = "User"
+        };
+
+        _mockUserService.Setup(x => x.SetUserRoleAsync(userId, UserRole.Chef, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<UserResponse>.Success(userResponse));
+
+        // Act
+        var result = await _controller.SetUserRole(userId, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result as OkObjectResult;
+        okResult!.Value.Should().BeEquivalentTo(userResponse);
+    }
+
+    [Fact]
+    public async Task SetUserRole_WithInvalidRole_ReturnsBadRequest()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new SetRoleRequest { Role = "InvalidRole" };
+        
+        _controller.HttpContext.SetAuthenticatedUser(new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "admin@test.com",
+            Role = UserRole.Admin
+        });
+
+        // Act
+        var result = await _controller.SetUserRole(userId, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task SetUserRole_UserNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new SetRoleRequest { Role = "User" };
+        
+        _controller.HttpContext.SetAuthenticatedUser(new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "admin@test.com",
+            Role = UserRole.Admin
+        });
+
+        _mockUserService.Setup(x => x.SetUserRoleAsync(userId, UserRole.User, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<UserResponse>.Failure("User not found"));
+
+        // Act
+        var result = await _controller.SetUserRole(userId, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    #endregion
+}

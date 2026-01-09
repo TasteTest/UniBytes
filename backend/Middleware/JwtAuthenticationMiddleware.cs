@@ -54,8 +54,8 @@ public class JwtAuthenticationMiddleware
             return;
         }
 
-        // Extract Authorization header
-        var authHeader = context.Request.Headers["Authorization"].ToString();
+        // Extract Authorization header using the Authorization property
+        var authHeader = context.Request.Headers.Authorization.ToString();
         
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {

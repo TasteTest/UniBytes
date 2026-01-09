@@ -55,6 +55,36 @@ public class OrderControllerTests
     }
 
     [Fact]
+    public async Task CreateOrder_WithoutUserRole_ReturnsForbidden()
+    {
+        // Arrange - Set up Chef role (not allowed to order)
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "chef@test.com",
+            Role = UserRole.Chef
+        };
+
+        var request = new CreateOrderRequest(
+            Guid.NewGuid(),
+            new List<CreateOrderItemRequest>
+            {
+                new CreateOrderItemRequest(Guid.NewGuid(), "Test Item", 10.00m, 2, null)
+            },
+            "USD",
+            null
+        );
+
+        // Act
+        var result = await _controller.CreateOrder(request);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult!.StatusCode.Should().Be(403);
+    }
+
+    [Fact]
     public async Task CreateOrder_ValidRequest_ReturnsCreatedAtAction()
     {
         // Arrange
@@ -375,6 +405,28 @@ public class OrderControllerTests
         result.Should().BeOfType<BadRequestObjectResult>();
         var badRequest = result as BadRequestObjectResult;
         badRequest!.Value.Should().Be("Status data is missing.");
+    }
+
+    [Fact]
+    public async Task UpdateOrderStatus_WithoutChefRole_ReturnsForbidden()
+    {
+        // Arrange - Set up User role (not allowed to update status)
+        _httpContext.Items["AuthenticatedUser"] = new AuthenticatedUser
+        {
+            Id = Guid.NewGuid(),
+            Email = "user@test.com",
+            Role = UserRole.User
+        };
+
+        var request = new UpdateOrderStatusRequest((int)OrderStatus.Confirmed);
+
+        // Act
+        var result = await _controller.UpdateOrderStatus(Guid.NewGuid(), request);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult!.StatusCode.Should().Be(403);
     }
 
     [Fact]
