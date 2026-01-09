@@ -11,8 +11,7 @@ namespace backend.Controllers;
 [Route("api/auth")]
 public class AuthController(
     IAuthService authService,
-    IUserService userService,
-    ILogger<AuthController> logger)
+    IUserService userService)
     : ControllerBase
 {
     /// <summary>

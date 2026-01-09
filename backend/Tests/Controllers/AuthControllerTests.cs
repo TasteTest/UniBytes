@@ -27,9 +27,8 @@ public class AuthControllerTests
     {
         _mockAuthService = new Mock<IAuthService>();
         _mockUserService = new Mock<IUserService>();
-        var mockLogger = new Mock<ILogger<AuthController>>();
         _httpContext = new DefaultHttpContext();
-        _controller = new AuthController(_mockAuthService.Object, _mockUserService.Object, mockLogger.Object)
+        _controller = new AuthController(_mockAuthService.Object, _mockUserService.Object)
         {
             ControllerContext = new ControllerContext
             {
