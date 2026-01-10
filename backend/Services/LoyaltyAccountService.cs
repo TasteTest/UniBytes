@@ -197,10 +197,10 @@ public class LoyaltyAccountService(
             {
                 await loyaltyAccountRepository.AddAsync(account, cancellationToken);
             }
-            catch (DbUpdateException dbEx) when (dbEx.InnerException is PostgresException { SqlState: "23505" } pgEx)
+            catch (DbUpdateException dbEx) when (dbEx.InnerException is PostgresException { SqlState: "23505" })
             {
                 // Unique constraint violation on user_id – another request created the account in parallel.
-                logger.LogWarning(pgEx, "Loyalty account already exists for user {UserId}, returning existing account", createRequest.UserId);
+                logger.LogWarning(dbEx, "Loyalty account already exists for user {UserId}, returning existing account", createRequest.UserId);
 
                 var existing = await loyaltyAccountRepository.GetByUserIdAsync(createRequest.UserId, cancellationToken);
                 if (existing != null)

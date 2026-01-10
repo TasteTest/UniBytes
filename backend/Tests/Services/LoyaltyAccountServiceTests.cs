@@ -19,6 +19,7 @@ public class LoyaltyAccountServiceTests
     private readonly Mock<ILoyaltyAccountRepository> _mockLoyaltyAccountRepository;
     private readonly Mock<ILoyaltyRedemptionRepository> _mockLoyaltyRedemptionRepository;
     private readonly Mock<IMapper> _mockMapper;
+    private readonly Mock<ILogger<LoyaltyAccountService>> _mockLogger;
     private readonly LoyaltyAccountService _loyaltyAccountService;
 
     public LoyaltyAccountServiceTests()
@@ -27,13 +28,13 @@ public class LoyaltyAccountServiceTests
 
         _mockLoyaltyRedemptionRepository = new Mock<ILoyaltyRedemptionRepository>();
         _mockMapper = new Mock<IMapper>();
-        var mockLogger = new Mock<ILogger<LoyaltyAccountService>>();
+        _mockLogger = new Mock<ILogger<LoyaltyAccountService>>();
 
         _loyaltyAccountService = new LoyaltyAccountService(
             _mockLoyaltyAccountRepository.Object,
             _mockLoyaltyRedemptionRepository.Object,
             _mockMapper.Object,
-            mockLogger.Object);
+            _mockLogger.Object);
     }
 
     [Fact]
@@ -434,6 +435,17 @@ public class LoyaltyAccountServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
         result.Data!.Id.Should().Be(existingAccount.Id);
+
+        // Verify that the exact DbUpdateException (dbUpdateException) was passed to the logger,
+        // NOT just the inner exception.
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                dbUpdateException,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

@@ -94,63 +94,15 @@ public class AIService : IAIService
 
             var message = openRouterResponse.Choices[0].Message;
             
-            // Parse response to extract product IDs
-            var responseText = message.Content;
-            var productIds = new List<Guid>();
+            // Extract product IDs and clean response text
+            var (cleanedText, productIds) = ExtractProductIdsFromResponse(message.Content);
             
-            // Look for PRODUCT_IDS: line in the response
-            var lines = responseText.Split('\n');
-            var productIdLine = lines.FirstOrDefault(l => l.TrimStart().StartsWith("PRODUCT_IDS:", StringComparison.OrdinalIgnoreCase));
-            
-            if (!string.IsNullOrEmpty(productIdLine))
-            {
-                // Extract the IDs part after "PRODUCT_IDS:"
-                var idsText = productIdLine.Substring(productIdLine.IndexOf(':') + 1).Trim();
-                var idStrings = idsText.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                
-                foreach (var idString in idStrings)
-                {
-                    if (Guid.TryParse(idString.Trim(), out var guid))
-                    {
-                        productIds.Add(guid);
-                    }
-                }
-                
-                // Remove the PRODUCT_IDS line from the response text
-                responseText = string.Join('\n', lines.Where(l => !l.TrimStart().StartsWith("PRODUCT_IDS:", StringComparison.OrdinalIgnoreCase)));
-            }
-            
-            // Fetch the recommended products
-            var recommendedProducts = new List<DTOs.Menu.Response.MenuItemResponseDto>();
-            if (productIds.Count > 0)
-            {
-                foreach (var productId in productIds)
-                {
-                    var product = menuItems.FirstOrDefault(m => m.Id == productId);
-                    if (product != null)
-                    {
-                        recommendedProducts.Add(new DTOs.Menu.Response.MenuItemResponseDto
-                        {
-                            Id = product.Id,
-                            CategoryId = product.CategoryId,
-                            Name = product.Name,
-                            Description = product.Description,
-                            Price = product.Price,
-                            Currency = product.Currency,
-                            Available = product.Available,
-                            Visibility = product.Visibility,
-                            Components = product.Components,
-                            ImageUrl = product.ImageUrl,
-                            CreatedAt = product.CreatedAt,
-                            UpdatedAt = product.UpdatedAt
-                        });
-                    }
-                }
-            }
+            // Map recommended products from menu items
+            var recommendedProducts = MapRecommendedProducts(productIds, menuItems);
             
             var aiResponse = new AIResponse
             {
-                Response = responseText.Trim(),
+                Response = cleanedText,
                 RecommendedProducts = recommendedProducts
             };
 
@@ -263,5 +215,68 @@ public class AIService : IAIService
         prompt.AppendLine("Generate the personalized menu recommendation now, following ALL rules and preferences above.");
 
         return prompt.ToString();
+    }
+
+    /// <summary>
+    /// Extract product IDs from the AI response text.
+    /// </summary>
+    private static (string cleanedText, List<Guid> productIds) ExtractProductIdsFromResponse(string responseText)
+    {
+        var productIds = new List<Guid>();
+        var lines = responseText.Split('\n');
+        var productIdLine = lines.FirstOrDefault(l => l.TrimStart().StartsWith("PRODUCT_IDS:", StringComparison.OrdinalIgnoreCase));
+        
+        if (string.IsNullOrEmpty(productIdLine))
+        {
+            return (responseText.Trim(), productIds);
+        }
+
+        var idsText = productIdLine.Substring(productIdLine.IndexOf(':') + 1).Trim();
+        var idStrings = idsText.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var idString in idStrings)
+        {
+            if (Guid.TryParse(idString.Trim(), out var guid))
+            {
+                productIds.Add(guid);
+            }
+        }
+        
+        var cleanedText = string.Join('\n', lines.Where(l => !l.TrimStart().StartsWith("PRODUCT_IDS:", StringComparison.OrdinalIgnoreCase)));
+        return (cleanedText.Trim(), productIds);
+    }
+
+    /// <summary>
+    /// Map product IDs to menu item response DTOs.
+    /// </summary>
+    private static List<DTOs.Menu.Response.MenuItemResponseDto> MapRecommendedProducts(
+        List<Guid> productIds, 
+        IEnumerable<Models.MenuItem> menuItems)
+    {
+        var recommendedProducts = new List<DTOs.Menu.Response.MenuItemResponseDto>();
+        
+        foreach (var productId in productIds)
+        {
+            var product = menuItems.FirstOrDefault(m => m.Id == productId);
+            if (product == null) continue;
+            
+            recommendedProducts.Add(new DTOs.Menu.Response.MenuItemResponseDto
+            {
+                Id = product.Id,
+                CategoryId = product.CategoryId,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                Currency = product.Currency,
+                Available = product.Available,
+                Visibility = product.Visibility,
+                Components = product.Components,
+                ImageUrl = product.ImageUrl,
+                CreatedAt = product.CreatedAt,
+                UpdatedAt = product.UpdatedAt
+            });
+        }
+        
+        return recommendedProducts;
     }
 }
