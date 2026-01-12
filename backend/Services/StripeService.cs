@@ -343,19 +343,13 @@ public class StripeService : IStripeService
             var payment = await _paymentRepository
                 .FirstOrDefaultAsync(p => p.ProviderChargeId == paymentIntent.Id, cancellationToken);
 
-            if (payment != null)
+            if (payment == null)
             {
-                payment.Status = PaymentStatus.Succeeded;
-                payment.RawProviderResponse = JsonSerializer.Serialize(paymentIntent);
-                payment.UpdatedAt = DateTime.UtcNow;
-
-                await _paymentRepository.UpdateAsync(payment, cancellationToken);
-
-                var paymentResponse = _mapper.Map<PaymentResponse>(payment);
-                return Result<PaymentResponse>.Success(paymentResponse);
+                return Result<PaymentResponse>.Success(null!);
             }
 
-            return Result<PaymentResponse>.Success(null!);
+            payment.Status = PaymentStatus.Succeeded;
+            return await UpdatePaymentAndReturnResponseAsync(payment, paymentIntent, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -373,26 +367,37 @@ public class StripeService : IStripeService
             var payment = await _paymentRepository
                 .FirstOrDefaultAsync(p => p.ProviderChargeId == paymentIntent.Id, cancellationToken);
 
-            if (payment != null)
+            if (payment == null)
             {
-                payment.Status = PaymentStatus.Failed;
-                payment.FailureMessage = paymentIntent.LastPaymentError?.Message ?? "Payment failed";
-                payment.RawProviderResponse = JsonSerializer.Serialize(paymentIntent);
-                payment.UpdatedAt = DateTime.UtcNow;
-
-                await _paymentRepository.UpdateAsync(payment, cancellationToken);
-
-                var paymentResponse = _mapper.Map<PaymentResponse>(payment);
-                return Result<PaymentResponse>.Success(paymentResponse);
+                return Result<PaymentResponse>.Success(null!);
             }
 
-            return Result<PaymentResponse>.Success(null!);
+            payment.Status = PaymentStatus.Failed;
+            payment.FailureMessage = paymentIntent.LastPaymentError?.Message ?? "Payment failed";
+            return await UpdatePaymentAndReturnResponseAsync(payment, paymentIntent, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing payment intent failed");
             return Result<PaymentResponse>.Failure($"Error processing payment intent: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Helper method to update payment and return response, reducing code duplication
+    /// </summary>
+    private async Task<Result<PaymentResponse>> UpdatePaymentAndReturnResponseAsync(
+        Payment payment,
+        object providerData,
+        CancellationToken cancellationToken)
+    {
+        payment.RawProviderResponse = JsonSerializer.Serialize(providerData);
+        payment.UpdatedAt = DateTime.UtcNow;
+
+        await _paymentRepository.UpdateAsync(payment, cancellationToken);
+
+        var paymentResponse = _mapper.Map<PaymentResponse>(payment);
+        return Result<PaymentResponse>.Success(paymentResponse);
     }
 }
 
