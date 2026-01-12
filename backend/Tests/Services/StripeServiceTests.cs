@@ -803,4 +803,202 @@ public class StripeServiceTests
     }
 
     #endregion
+
+    #region UpdatePaymentAndReturnResponseAsync Integration Tests
+
+    [Fact]
+    public async Task ProcessPaymentIntentSucceeded_VerifiesHelperMethodSetsUpdatedAtCorrectly()
+    {
+        // Arrange
+        var paymentId = Guid.NewGuid();
+        var beforeUpdate = DateTime.UtcNow.AddMinutes(-1);
+        var paymentIntent = new PaymentIntent 
+        { 
+            Id = "pi_test_helper",
+            Amount = 5000,
+            Currency = "ron",
+            Status = "succeeded"
+        };
+        var stripeEvent = new Event { Type = "payment_intent.succeeded", Data = new EventData { Object = paymentIntent } };
+
+        var payment = new Payment 
+        { 
+            Id = paymentId, 
+            ProviderChargeId = "pi_test_helper", 
+            Status = PaymentStatus.Processing,
+            UpdatedAt = beforeUpdate
+        };
+        var paymentResponse = new PaymentResponse { Id = paymentId };
+
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(stripeEvent);
+
+        _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(payment);
+
+        Payment? capturedPayment = null;
+        _mockPaymentRepository.Setup(x => x.UpdateAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
+            .Callback<Payment, CancellationToken>((p, _) => capturedPayment = p)
+            .Returns(Task.CompletedTask);
+
+        _mockMapper.Setup(x => x.Map<PaymentResponse>(It.IsAny<Payment>()))
+            .Returns(paymentResponse);
+
+        // Act
+        var result = await _stripeService.HandleWebhookEventAsync("{}", "sig");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
+        
+        capturedPayment.Should().NotBeNull();
+        capturedPayment!.UpdatedAt.Should().BeAfter(beforeUpdate);
+        capturedPayment.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task ProcessPaymentIntentSucceeded_VerifiesHelperMethodSerializesProviderDataCorrectly()
+    {
+        // Arrange
+        var paymentId = Guid.NewGuid();
+        var paymentIntent = new PaymentIntent 
+        { 
+            Id = "pi_test_serialization",
+            Amount = 12345,
+            Currency = "ron",
+            Status = "succeeded",
+            Description = "Test payment with complex data"
+        };
+        var stripeEvent = new Event { Type = "payment_intent.succeeded", Data = new EventData { Object = paymentIntent } };
+
+        var payment = new Payment 
+        { 
+            Id = paymentId, 
+            ProviderChargeId = "pi_test_serialization", 
+            Status = PaymentStatus.Processing
+        };
+        var paymentResponse = new PaymentResponse { Id = paymentId };
+
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(stripeEvent);
+
+        _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(payment);
+
+        Payment? capturedPayment = null;
+        _mockPaymentRepository.Setup(x => x.UpdateAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
+            .Callback<Payment, CancellationToken>((p, _) => capturedPayment = p)
+            .Returns(Task.CompletedTask);
+
+        _mockMapper.Setup(x => x.Map<PaymentResponse>(It.IsAny<Payment>()))
+            .Returns(paymentResponse);
+
+        // Act
+        var result = await _stripeService.HandleWebhookEventAsync("{}", "sig");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
+        
+        capturedPayment.Should().NotBeNull();
+        capturedPayment!.RawProviderResponse.Should().NotBeNullOrEmpty();
+        capturedPayment.RawProviderResponse.Should().Contain("pi_test_serialization");
+        capturedPayment.RawProviderResponse.Should().Contain("12345");
+    }
+
+    [Fact]
+    public async Task ProcessPaymentIntentFailed_VerifiesHelperMethodCallsMapperCorrectly()
+    {
+        // Arrange
+        var paymentId = Guid.NewGuid();
+        var paymentIntent = new PaymentIntent 
+        { 
+            Id = "pi_test_mapper",
+            LastPaymentError = new StripeError { Message = "Card was declined" }
+        };
+        var stripeEvent = new Event { Type = "payment_intent.payment_failed", Data = new EventData { Object = paymentIntent } };
+
+        var payment = new Payment 
+        { 
+            Id = paymentId, 
+            ProviderChargeId = "pi_test_mapper", 
+            Status = PaymentStatus.Processing
+        };
+        var paymentResponse = new PaymentResponse { Id = paymentId };
+
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(stripeEvent);
+
+        _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(payment);
+
+        _mockPaymentRepository.Setup(x => x.UpdateAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        Payment? mappedPayment = null;
+        _mockMapper.Setup(x => x.Map<PaymentResponse>(It.IsAny<Payment>()))
+            .Callback<object>(p => mappedPayment = p as Payment)
+            .Returns(paymentResponse);
+
+        // Act
+        var result = await _stripeService.HandleWebhookEventAsync("{}", "sig");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.Id.Should().Be(paymentId);
+        
+        // Verify mapper was called with the updated payment
+        _mockMapper.Verify(x => x.Map<PaymentResponse>(It.IsAny<Payment>()), Times.Once);
+        mappedPayment.Should().NotBeNull();
+        mappedPayment!.Status.Should().Be(PaymentStatus.Failed);
+        mappedPayment.FailureMessage.Should().Be("Card was declined");
+        mappedPayment.RawProviderResponse.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ProcessPaymentIntentSucceeded_VerifiesHelperMethodReturnsCorrectSuccessResult()
+    {
+        // Arrange
+        var paymentId = Guid.NewGuid();
+        var paymentIntent = new PaymentIntent { Id = "pi_test_result" };
+        var stripeEvent = new Event { Type = "payment_intent.succeeded", Data = new EventData { Object = paymentIntent } };
+
+        var payment = new Payment 
+        { 
+            Id = paymentId, 
+            ProviderChargeId = "pi_test_result", 
+            Status = PaymentStatus.Processing
+        };
+        var paymentResponse = new PaymentResponse 
+        { 
+            Id = paymentId,
+            Amount = 100.00m
+        };
+
+        _mockStripeWrapper.Setup(x => x.ConstructWebhookEvent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(stripeEvent);
+
+        _mockPaymentRepository.Setup(x => x.FirstOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Payment, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(payment);
+
+        _mockPaymentRepository.Setup(x => x.UpdateAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _mockMapper.Setup(x => x.Map<PaymentResponse>(It.IsAny<Payment>()))
+            .Returns(paymentResponse);
+
+        // Act
+        var result = await _stripeService.HandleWebhookEventAsync("{}", "sig");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data.Should().BeEquivalentTo(paymentResponse);
+        result.Error.Should().BeNull();
+    }
+
+    #endregion
 }
