@@ -16,6 +16,7 @@ import { useCartStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { paymentService } from "@/lib/services/PaymentService"
+import { orderService, type CreateOrderItemRequest } from "@/lib/services/OrderService"
 import type { CheckoutLineItem } from "@/lib/types/payment.types"
 
 export default function CheckoutPage() {
@@ -70,17 +71,31 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
-      // Prepare line items for Stripe (regular items)
-      const lineItems: CheckoutLineItem[] = items.map((item) => ({
-        menuItemId: item.menuItem.id,
-        name: item.menuItem.name,
-        description: item.menuItem.description || undefined,
-        unitPrice: item.menuItem.price,
-        quantity: item.quantity,
-        currency: item.menuItem.currency || 'RON',
-        imageUrl: item.menuItem.image || undefined,
-        modifiers: item.modifiers?.length ? item.modifiers : [],
-      }))
+      // Calculate the discount ratio to apply to each item
+      const discountRatio = subtotal > 0 ? discount / subtotal : 0
+
+      // Prepare line items for Stripe with discount applied proportionally
+      const lineItems: CheckoutLineItem[] = items.map((item) => {
+        const originalPrice = item.menuItem.price +
+          item.modifiers.reduce((sum, m) => sum + m.price, 0)
+        // Apply proportional discount to each item's price
+        const discountedPrice = Math.max(0, originalPrice * (1 - discountRatio))
+        // Round to 2 decimal places
+        const roundedPrice = Math.round(discountedPrice * 100) / 100
+
+        return {
+          menuItemId: item.menuItem.id,
+          name: item.menuItem.name,
+          description: discount > 0
+            ? `${item.menuItem.description || ''} (Discount applied)`.trim()
+            : item.menuItem.description || undefined,
+          unitPrice: roundedPrice,
+          quantity: item.quantity,
+          currency: item.menuItem.currency || 'RON',
+          imageUrl: item.menuItem.image || undefined,
+          modifiers: item.modifiers?.length ? item.modifiers : [],
+        }
+      })
 
       // Add free reward items (MenuItem type) as items with price 0
       const freeRewardLineItems: CheckoutLineItem[] = freeItems.map((reward) => ({
@@ -100,6 +115,82 @@ export default function CheckoutPage() {
       }))
 
       const allLineItems = [...lineItems, ...freeRewardLineItems]
+
+      // Calculate the total after discount for Stripe
+      const stripeTotal = lineItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
+
+      // If total is 0 or less than minimum (Stripe requires at least 0.50 RON), 
+      // we need to create the order directly without Stripe
+      if (stripeTotal < 0.50) {
+        toast({
+          title: "Free order!",
+          description: "Your discounts cover the entire order. Processing...",
+        })
+
+        // Get user ID from session (backendId is the user's ID in our backend)
+        const userId = (session as any).user?.backendId || (session as any).user?.id
+        if (!userId) {
+          toast({
+            title: "Error",
+            description: "Could not identify user. Please sign in again.",
+            variant: "destructive",
+          })
+          setIsProcessing(false)
+          return
+        }
+
+        // Create order items for the backend
+        const orderItems: CreateOrderItemRequest[] = [
+          ...items.map((item) => ({
+            menuItemId: item.menuItem.id,
+            name: item.menuItem.name,
+            unitPrice: 0, // Free order
+            quantity: item.quantity,
+            modifiers: item.modifiers?.length ? item.modifiers : undefined,
+            isReward: false,
+          })),
+          ...freeItems.map((reward) => ({
+            name: reward.rewardName,
+            unitPrice: 0,
+            quantity: 1,
+            isReward: true,
+            rewardId: reward.rewardId,
+          })),
+        ]
+
+        // Create the order in the backend
+        const orderResult = await orderService.createFreeOrder({
+          userId,
+          orderItems,
+          currency: 'ron',
+          metadata: {
+            pickupLocation: pickupLocation,
+            pickupTime: pickupTime === "asap" ? "ASAP (15-20 min)" : "Scheduled",
+            isFreeOrder: true,
+            originalSubtotal: subtotal,
+            discountApplied: discount,
+            discountItems: discountItems.map(d => ({
+              rewardId: d.rewardId,
+              rewardName: d.rewardName,
+            })),
+          }
+        })
+
+        if (!orderResult.isSuccess) {
+          toast({
+            title: "Order failed",
+            description: orderResult.error || "Failed to create order. Please try again.",
+            variant: "destructive",
+          })
+          setIsProcessing(false)
+          return
+        }
+
+        // Success! Clear cart and redirect
+        clearCart()
+        router.push(`/checkout/success?free_order=true&order_id=${orderResult.data?.id}`)
+        return
+      }
 
       // Generate a temporary order ID (in production, create order first)
       const orderId = crypto.randomUUID()
