@@ -34,14 +34,25 @@ function CheckoutSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session_id")
+  const isFreeOrder = searchParams.get("free_order") === "true"
+  const freeOrderId = searchParams.get("order_id")
   const { clearCart } = useCartStore()
 
   const [isVerifying, setIsVerifying] = useState(true)
   const [payment, setPayment] = useState<Payment | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isFreeOrderSuccess, setIsFreeOrderSuccess] = useState(false)
 
   useEffect(() => {
     const verifyPayment = async () => {
+      // Handle free orders (discounts covered the entire order)
+      if (isFreeOrder) {
+        setIsFreeOrderSuccess(true)
+        setIsVerifying(false)
+        clearCart()
+        return
+      }
+
       if (!sessionId) {
         setError("No session ID provided")
         setIsVerifying(false)
@@ -66,7 +77,7 @@ function CheckoutSuccessContent() {
     }
 
     verifyPayment()
-  }, [sessionId, clearCart])
+  }, [sessionId, isFreeOrder, clearCart])
 
   if (isVerifying) {
     return (
@@ -82,7 +93,8 @@ function CheckoutSuccessContent() {
     )
   }
 
-  if (error || !payment) {
+  // Show error only if it's not a free order and there's no payment
+  if (error || (!payment && !isFreeOrderSuccess)) {
     return (
       <div className="container py-16 max-w-2xl">
         <Card className="card-glass border-none text-center">
@@ -106,6 +118,58 @@ function CheckoutSuccessContent() {
     )
   }
 
+  // Show success UI for free orders (discounts covered entire order)
+  if (isFreeOrderSuccess) {
+    return (
+      <div className="container py-16 max-w-2xl">
+        <Card className="card-glass border-none text-center">
+          <CardHeader>
+            <div className="mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900 p-3 w-fit">
+              <CheckCircle2 className="h-16 w-16 text-green-600 dark:text-green-400" />
+            </div>
+            <CardTitle className="text-3xl">Order Confirmed! 🎉</CardTitle>
+            <CardDescription className="text-lg">
+              Your loyalty rewards covered the entire order
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg bg-muted p-4 space-y-2 text-left">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Amount:</span>
+                <span className="font-semibold text-green-600 dark:text-green-400">
+                  FREE (0.00 RON)
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Status:</span>
+                <span className="font-semibold text-green-600 dark:text-green-400">
+                  Sent to Kitchen ✓
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payment Method:</span>
+                <span className="font-semibold">Loyalty Rewards</span>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Congratulations! Your loyalty discounts covered the entire order.
+              Your order has been sent to the kitchen and will be ready for pickup soon.
+            </p>
+          </CardContent>
+          <CardFooter className="flex gap-4 justify-center">
+            <Button variant="outline" onClick={() => router.push("/")}>
+              Continue Shopping
+            </Button>
+            <Button onClick={() => router.push("/orders")}>
+              View My Orders
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="container py-16 max-w-2xl">
       <Card className="card-glass border-none text-center">
@@ -123,7 +187,7 @@ function CheckoutSuccessContent() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Amount:</span>
               <span className="font-semibold">
-                {formatCurrency(payment.amount, payment.currency)}
+                {formatCurrency(payment?.amount ?? 0, payment?.currency ?? 'RON')}
               </span>
             </div>
             <div className="flex justify-between text-sm">
