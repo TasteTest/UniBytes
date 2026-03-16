@@ -22,7 +22,7 @@
         <PackageReference Include="Moq" Version="4.20.72" />
         <PackageReference Include="FluentAssertions" Version="6.12.2" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
-        <PackageReference Include="AutoMapper" Version="12.0.1" />
+        <PackageReference Include="AutoMapper" Version="15.1.1" />
         <PackageReference Include="Stripe.net" Version="50.0.0" />
         <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
